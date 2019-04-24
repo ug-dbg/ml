@@ -1,6 +1,7 @@
 package com.github.ugdbg.perceptron;
 
 
+import com.github.ugdbg.function.scalar.Derivable;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
@@ -29,7 +30,7 @@ public class Neuron implements Serializable {
 	/**
 	 * Activation function : used after linear combination. It should have some activation threshold properties.
 	 */
-	private Function activation;
+	private Derivable activation;
 
 	/**
 	 * Scalar between 0 and 1. <br>
@@ -47,7 +48,7 @@ public class Neuron implements Serializable {
 	 */
 	private float momentum = 0.3f;
 
-	public Neuron(float bias, float[] weights, float learningFactor, Function activation) {
+	public Neuron(float bias, float[] weights, float learningFactor, Derivable activation) {
 		this.bias = bias;
 		this.weights = weights;
 		this.activation = activation;
@@ -61,7 +62,7 @@ public class Neuron implements Serializable {
 	 * @param activation     the {@link #activation} function to use.
 	 * @return the created and initialized Neuron.
 	 */
-	public static Neuron init(int weightSize, float learningFactor, Function activation){
+	public static Neuron init(int weightSize, float learningFactor, Derivable activation){
 		float[] weights = new float[weightSize];
 		Random random = new Random();
 		for(int i = 0; i < weightSize; i++){
@@ -88,14 +89,14 @@ public class Neuron implements Serializable {
 	 * <ol>
 	 *     <li>linear combination of the input vector with the neuron {@link #weights}</li>
 	 *     <li>multiply with the sum of the next layer error signal</li>
-	 *     <li>apply the {@link #activation} derive {@link Function#derive(float)} on the result</li>
+	 *     <li>apply the {@link #activation} derive {@link Derivable#derive()} on the result</li>
 	 * </ol>
 	 * @param input                the neuron input
 	 * @param nextLayerErrorSignal the next layer error signal
 	 * @return the {@link Neuron.NeuronErrorSignal}
 	 */
 	public NeuronErrorSignal errorSignal(float[] input, List<Float> nextLayerErrorSignal){
-		float error = this.activation.derive(this.linearCombination(input)) * this.sum(nextLayerErrorSignal);
+		float error = this.activation.derive().apply(this.linearCombination(input)) * this.sum(nextLayerErrorSignal);
 		return new NeuronErrorSignal(error, this.weights);
 	}
 

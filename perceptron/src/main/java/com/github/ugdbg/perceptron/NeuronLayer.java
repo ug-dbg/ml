@@ -1,5 +1,6 @@
 package com.github.ugdbg.perceptron;
 
+import com.github.ugdbg.function.scalar.Derivable;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
@@ -38,7 +39,7 @@ public class NeuronLayer implements Serializable {
 	 * @param learningFactor the learning factor of the layer neurons
 	 * @param activation     the activation function of the neurons
 	 */
-	public void init(int weightSize, float learningFactor, Function activation){
+	public void init(int weightSize, float learningFactor, Derivable activation){
 		for(int i = 0; i < this.neurons.length; i++){
 			this.neurons[i] = Neuron.init(weightSize, learningFactor, activation);
 		}
