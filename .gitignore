@@ -1,6 +1,3 @@
 *.iml
-.idea/*
-.idea/.name
-.idea/codeStyles/*
-.idea/libraries/*
+.idea/
 target/
