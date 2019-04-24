@@ -23,4 +23,14 @@ public class Linear implements Derivable {
 	public float apply(float input) {
 		return this.a * input + this.b;
 	}
+
+	@Override
+	public String label() {
+		return this.a + "*x + " + this.b;
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
+	}
 }

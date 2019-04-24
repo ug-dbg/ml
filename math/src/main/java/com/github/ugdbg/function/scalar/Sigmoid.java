@@ -27,4 +27,14 @@ public class Sigmoid implements Derivable, Serializable {
 			return (float) (numerator / denominator);
 		};
 	}
+
+	@Override
+	public String label() {
+		return "1 / (1 + e(-" + this.lambda + " * x))";
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
+	}
 }

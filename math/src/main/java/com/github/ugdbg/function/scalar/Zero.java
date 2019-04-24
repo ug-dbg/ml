@@ -13,4 +13,14 @@ public class Zero implements Derivable {
 	public float apply(float input) {
 		return 0;
 	}
+
+	@Override
+	public String label() {
+		return "0";
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
+	}
 }

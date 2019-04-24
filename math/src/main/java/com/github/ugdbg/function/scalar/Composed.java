@@ -1,5 +1,8 @@
 package com.github.ugdbg.function.scalar;
 
+/**
+ * u:x → (f ∘ g) (x) 
+ */
 public interface Composed extends Function {
 	
 	Function f();
@@ -23,5 +26,10 @@ public interface Composed extends Function {
 				return g;
 			}
 		};
+	}
+
+	@Override
+	default String label() {
+		return this.f().label() + " ∘ " + this.g().label();
 	}
 }

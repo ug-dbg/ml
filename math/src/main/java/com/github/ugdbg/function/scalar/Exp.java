@@ -13,4 +13,14 @@ public class Exp implements Derivable {
 	public float apply(float input) {
 		return (float) Math.exp(input);
 	}
+
+	@Override
+	public String label() {
+		return "e(x)";
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();  
+	}
 }

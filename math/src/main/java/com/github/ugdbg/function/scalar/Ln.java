@@ -13,4 +13,14 @@ public class Ln implements Derivable {
 	public float apply(float input) {
 		return (float) Math.log(input);
 	}
+
+	@Override
+	public String label() {
+		return "ln(x)";
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
+	}
 }

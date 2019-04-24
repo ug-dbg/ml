@@ -1,5 +1,8 @@
 package com.github.ugdbg.function.scalar;
 
+/**
+ * u:x → (f ∘ g) (x)
+ */
 public interface ComposedDerivable extends Composed, Derivable {
 	
 	Derivable f();

@@ -20,4 +20,14 @@ public class Constant implements Derivable {
 	public float apply(float input) {
 		return this.k;
 	}
+
+	@Override
+	public String label() {
+		return String.valueOf(this.k);
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
+	}
 }

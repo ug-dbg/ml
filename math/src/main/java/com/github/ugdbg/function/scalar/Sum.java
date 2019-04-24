@@ -23,4 +23,14 @@ public class Sum implements Derivable {
 	public Function derive() {
 		return input -> this.f.derive().apply(input) + this.g.derive().apply(input);
 	}
+
+	@Override
+	public String label() {
+		return this.f.label() + this.g.label();
+	}
+
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
+	}
 }

@@ -1,5 +1,7 @@
 package com.github.ugdbg.function.scalar;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * u:x → f(x) * g(x)
  */
@@ -28,5 +30,15 @@ public class Product implements Derivable {
 	@Override
 	public float apply(float input) {
 		return this.f.apply(input) * this.g.apply(input);
+	}
+
+	@Override
+	public String label() {
+		return this.f.toString() + " + " + this.g.toString();
+	}
+	
+	@Override
+	public String toString() {
+		return "u:x → " + this.label();
 	}
 }
