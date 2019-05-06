@@ -4,6 +4,11 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
 
+/**
+ * sm:x(x₁,x₂,x₃...xₙ) → y(y₁,y₂,y₃...yₙ)
+ * <br>
+ * where yₖ = exp(xₖ) / ∑₁→ₙ (x₁,x₂,x₃...xₙ) .
+ */
 public class SoftMax implements VFunction {
 	@Override
 	public float[] apply(float[] input) {
