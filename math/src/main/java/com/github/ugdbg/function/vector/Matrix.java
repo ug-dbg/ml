@@ -3,11 +3,19 @@ package com.github.ugdbg.function.vector;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * A rectangular (m,n) matrix that can compute an input m sized vector.
+ * m:x(x₁,x₂,x₃...xₘ) → y(y₁,y₂,y₃...yₙ)
+ * <br>
+ * where :
+ * <ul>
+ *     <li>y(y₁,y₂,y₃...yₙ) = M(m,n) * x(x₁,x₂,x₃...xₘ)</li>
+ *     <li>M(m,n) is a rectangular (m,n) matrix.</li>
+ * </ul>
  * <br>
  * Example : 
  * <pre>
@@ -22,7 +30,7 @@ import java.util.stream.Collectors;
 public class Matrix implements VFunction {
 	
 	private final float[][] weights;
-	private String format = "%.2f";
+	private transient String format = "%+.2f";
 
 	public Matrix(int m, int n) {
 		this.weights = new float[m][n];
@@ -43,6 +51,16 @@ public class Matrix implements VFunction {
 	public Matrix format(String format) {
 		this.format = format;
 		return this;
+	}
+	
+	public Matrix transpose() {
+		Matrix transposed = new Matrix(this.getN(), this.getM());
+		for (int i = 0; i < this.getM(); i++) {
+			for (int j = 0; j < this.getN(); j++) {
+				transposed.at(j, i, this.at(i, j));
+			}
+		}
+		return transposed;
 	}
 
 	public Matrix at(int x, int y, float value) {
@@ -101,6 +119,22 @@ public class Matrix implements VFunction {
 		return out;
 	}
 	
+	public List<Vector> lines() {
+		List<Vector> lines = new ArrayList<>(this.getM());
+		for (int i = 0; i < this.getM(); i++) {
+			lines.add(new Vector(this.line(i)));
+		}
+		return lines;
+	}
+	
+	public List<Vector> cols() {
+		List<Vector> lines = new ArrayList<>(this.getN());
+		for (int j = 0; j < this.getN(); j++) {
+			lines.add(new Vector(this.col(j)));
+		}
+		return lines;
+	}
+	
 	@Override
 	public float[] apply(float[] input) {
 		int height = this.getM();
@@ -121,13 +155,13 @@ public class Matrix implements VFunction {
 
 	@Override
 	public String toString() {
-		StringBuilder out = new StringBuilder("┌" + spaces(this.getN() * 5 - 1) + "┐" + "\n");
+		StringBuilder out = new StringBuilder("┌" + spaces(this.getN() * 6 - 1) + "┐" + "\n");
 		for (int i = 0; i < this.getM(); i++) {
 			out.append("│");
 			out.append(this.format(this.line(i)));
 			out.append("│\n");
 		}
-		return out + "└" + spaces(this.getN() * 5 -1) + "┘";
+		return out + "└" + spaces(this.getN() * 6 -1) + "┘";
 	}
 
 	public String toString(float[] vector) {
@@ -171,19 +205,5 @@ public class Matrix implements VFunction {
 	
 	private static String spaces(int amount) {
 		return new String(new char[amount]).replace('\0', ' ');
-	}
-	
-	public static void main(String[] args) {
-		Matrix matrix = new Matrix(4, 3)
-			.at(0, 0.2f, 0.3f, 0.1f)
-			.at(1, 0.4f, 0.3f, 0.5f)
-			.at(2, 0.1f, 0.7f, 0.1f)
-			.at(3, 0.6f, 0.3f, 0.9f);
-
-		System.out.println("m = " + matrix.getM());
-		System.out.println("n = " + matrix.getN());
-		System.out.println(matrix);
-
-		System.out.println(matrix.toString(matrix.apply(new float[]{1, 0, 0, 0})));
 	}
 }
