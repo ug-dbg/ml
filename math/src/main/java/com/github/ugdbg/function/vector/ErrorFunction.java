@@ -1,13 +1,27 @@
 package com.github.ugdbg.function.vector;
 
-public interface ErrorFunction {
+import org.apache.commons.lang3.ArrayUtils;
+
+import java.util.Arrays;
+
+public interface ErrorFunction extends VFunction {
 	
-	float apply(float[] expected, float[] output);
+	float[] expected();
 	
-	default int length(float[] expected, float[] output) {
-		if (expected.length != output.length) {
-			throw new IllegalArgumentException("Bad vector size [" + expected.length + "] VS [" + output.length + "]");
+	VFunction derive();
+	
+	default float normalizedError(float[] output) {
+		float[] error = this.apply(output);
+		float length = this.length(output);
+		return (-1 / length) * (float) Arrays.stream(ArrayUtils.toObject(error)).mapToDouble(f -> (double) f).sum();
+	}
+	
+	default int length(float[] output) {
+		if (this.expected().length != output.length) {
+			throw new IllegalArgumentException(
+				"Bad vector size [" + this.expected().length + "] VS [" + output.length + "]"
+			);
 		}
-		return expected.length;
+		return this.expected().length;
 	}
 }
