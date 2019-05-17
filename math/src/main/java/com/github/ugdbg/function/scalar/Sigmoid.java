@@ -15,16 +15,14 @@ public class Sigmoid implements Derivable, Serializable {
 
 	@Override
 	public float apply(float input) {
-		return (float) (1 / (1 + Math.exp(this.lambda * -1 * input)));
+		return (float) (1f / (1f + Math.exp(this.lambda * -1 * input)));
 	}
 
 	@Override
 	public Function derive() {
 		return input -> {
-			double expMinusLambda = Math.exp(Sigmoid.this.lambda * -1 * input);
-			double numerator   = Sigmoid.this.lambda * expMinusLambda;
-			double denominator = (1 + expMinusLambda) * (1 + expMinusLambda);
-			return (float) (numerator / denominator);
+			float out = Sigmoid.this.apply(input);
+			return out * (1f - out);
 		};
 	}
 
