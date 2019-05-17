@@ -1,6 +1,7 @@
 package com.github.ugdbg.function.scalar;
 
 import com.github.ugdbg.function.vector.VFunction;
+import com.github.ugdbg.function.vector.Vector;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -58,5 +59,14 @@ public interface Function extends Serializable {
 			out[i] = this.apply(input[i]);
 		}
 		return out;
+	}
+	
+	/**
+	 * Apply the current function to a vector.
+	 * @param input the input vector
+	 * @return an output vector y(y₁,y₂,y₃...yₙ) where yᵢ = this(xᵢ)
+	 */
+	default Vector apply(Vector input) {
+		return new Vector(this.apply(input.getValue()));
 	}
 }
