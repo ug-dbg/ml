@@ -93,6 +93,18 @@ public class MNIST {
 	}
 
 	/**
+	 * Load a new MNIST instance from the default URLs.
+	 * @return a new MNIST instance whose datasets are loaded from the given URLs.
+	 */
+	public static MNIST load() {
+		MNIST mnist = new MNIST();
+		mnist.downloadImages();
+		mnist.downloadLabels();
+		mnist.doLoad();
+		return mnist;
+	}
+	
+	/**
 	 * Load a new MNIST instance from the given URLs.
 	 * @return a new MNIST instance whose datasets are loaded from the given URLs.
 	 */
