@@ -1,11 +1,16 @@
 package com.github.ugdbg.function.vector;
 
+import com.github.ugdbg.function.FloatFormat;
 import com.google.common.base.Joiner;
+import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 /**
  * A vector of float values.
@@ -14,7 +19,7 @@ import java.util.stream.Collectors;
 public class Vector implements Serializable  {
 	
 	private final float[] value;
-	private transient String format = "%.2f";
+	private transient FloatFormat format = new FloatFormat(3, 2);
 
 	public Vector(Float[] value) {
 		this(ArrayUtils.toPrimitive(value));
@@ -24,11 +29,33 @@ public class Vector implements Serializable  {
 		this.value = Arrays.copyOf(value, value.length);
 	}
 
+	public static Vector of(float... values) {
+		return new Vector(values);
+	}
+	
+	public static Vector of(int dimension) {
+		return new Vector(new float[dimension]);
+	}
+	
+	public static Vector oneHot(int index, int length) {
+		Vector oneHot = new Vector(new float[length]);
+		oneHot.value[index] = 1;
+		return oneHot;
+	}
+	
+	public static Vector sum(Vector a, Vector b) {
+		return Vector.of(Math.min(a.dimension(), b.dimension())).operation((v, i) -> v.at(i, a.at(i) + b.at(i)));
+	}
+	
+	public static Vector sub(Vector a, Vector b) {
+		return Vector.of(Math.min(a.dimension(), b.dimension())).operation((v, i) -> v.at(i, a.at(i) - b.at(i)));
+	}
+	
 	public float[] getValue() {
 		return this.value;
 	}
 
-	public Vector format(String format) {
+	public Vector format(FloatFormat format) {
 		this.format = format;
 		return this;
 	}
@@ -37,32 +64,32 @@ public class Vector implements Serializable  {
 		return this.value.length;
 	}
 	
+	public String shortLabel() {
+		return "V(" + this.dimension() + ")";
+	}
+	
 	public float at(int i) {
 		return this.value[i];
 	}
 	
-	public Vector add(float[] other) {
-		return new Vector(this.operation(other, Float::sum));
+	public void at(int i, float value) {
+		this.value[i] = value;
 	}
 	
-	public Vector add(Vector other) {
-		return new Vector(this.operation(other.value, Float::sum));
+	public Vector sum(Vector other) {
+		return this.operation((vector, i) -> vector.at(i, vector.at(i) + other.at(i)));
 	}
 	
-	public Vector substract(float[] other) {
-		return new Vector(this.operation(other, (a, b) -> a - b));
+	public Vector sub(Vector other) {
+		return this.operation((vector, i) -> vector.at(i, vector.at(i) - other.at(i)));
 	}
 	
-	public Vector substract(Vector other) {
-		return this.substract(other.value);
-	}
-	
-	public Vector mult(float[] other) {
-		return new Vector(this.operation(other, (a,b) -> a*b));
+	public Vector mult(float scalar) {
+		return this.operation((vector, i) -> vector.at(i, vector.at(i) * scalar));
 	}
 	
 	public Vector mult(Vector other) {
-		return new Vector(this.operation(other.value, (a,b) -> a*b));
+		return this.operation((vector, i) -> this.at(i, this.at(i) * other.at(i)));
 	}
 	
 	public float scalar(Vector other) {
@@ -73,14 +100,34 @@ public class Vector implements Serializable  {
 		return (float) Arrays.stream(ArrayUtils.toObject(this.value)).mapToDouble(f -> (double) f).sum();
 	}
 	
-	public Matrix outer(Vector other) {
-		Matrix outer = new Matrix(this.value.length, other.value.length);
-		for (int i = 0; i < this.value.length; i++) {
-			for (int j = 0; j < other.value.length; j++) {
-				outer.at(i, j, this.value[i] * other.value[j]);
+	public float avg(boolean abs) {
+		ToDoubleFunction<Float> toDouble = abs ? Math::abs : f -> (double) f;
+		return (float) this.doubleStream(toDouble).average().orElse(0);
+	}
+	
+	public float max(boolean abs) {
+		ToDoubleFunction<Float> toDouble = abs ? Math::abs : f -> (double) f;
+		return (float) this.doubleStream(toDouble).max().orElse(0);
+	}
+	
+	public int topIndex() {
+		AtomicInteger top = new AtomicInteger(-1);
+		AtomicDouble value = new AtomicDouble(Float.NEGATIVE_INFINITY);
+		this.operation((vector, i) -> {
+			if (vector.at(i) > value.floatValue()) {
+				top.set(i);
+				value.set(vector.value[i]);
 			}
-		}
-		return outer;
+		});
+		return top.get();
+	}
+	
+	public Vector normalize(float min, float max) {
+		return this.operation((vector, i) -> this.at(i, (this.at(i) - min) / (max - min)));
+	}
+	
+	public Matrix outer(Vector other) {
+		return Matrix.outer(this, other);
 	}
 
 	@Override
@@ -88,28 +135,26 @@ public class Vector implements Serializable  {
 		return "[" + this.format(ArrayUtils.toObject(this.value)) + "]";
 	}
 	
+	private DoubleStream doubleStream(ToDoubleFunction<? super Float> function) {
+		return Arrays.stream(ArrayUtils.toObject(this.value)).mapToDouble(function);
+	}
+	
 	private String format(Float[] vector) {
 		return Joiner.on(" ").join(Arrays.stream(vector).map(this::format).collect(Collectors.toList()));
 	}
 	
 	private String format(float value) {
-		return String.format(this.format, value);
+		return this.format.format(value);
 	}
 	
-	private float[] operation(float[] other, Operation op) {
-		if (this.value.length != other.length) {
-			throw new IllegalArgumentException(
-				"Could not execute operation : this length [" + this.value.length + "] != [" + other.length + "]"
-			);
-		}
-		float[] out = new float[this.value.length];
+	private Vector operation(Operation op) {
 		for(int i = 0; i < this.value.length; i++) {
-			out[i] = op.apply(this.value[i], other[i]);
+			op.doAt(this, i);
 		}
-		return out;
+		return this;
 	}
 
 	interface Operation {
-		float apply(float a, float b);
+		void doAt(Vector vector, int i);
 	}
 }

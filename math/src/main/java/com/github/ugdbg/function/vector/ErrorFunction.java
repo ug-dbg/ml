@@ -4,11 +4,9 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
 
-public interface ErrorFunction extends VFunction {
+public interface ErrorFunction extends VDerivable {
 	
 	float[] expected();
-	
-	VFunction derive();
 	
 	default float normalizedError(float[] output) {
 		float[] error = this.apply(output);

@@ -32,7 +32,7 @@ public class CrossEntropy implements ErrorFunction {
 	}
 	
 	protected float calculate(int i, float value) {
-		return (float) (this.expected[i] * Math.log(value) + (1 - this.expected[i] * Math.log(1 - value)));
+		return (float) (-1f * (this.expected[i] * Math.log(value) + (1 - this.expected[i]) * Math.log(1 - value)));
 	}
 
 	@Override
@@ -41,7 +41,7 @@ public class CrossEntropy implements ErrorFunction {
 			@Override
 			protected float calculate(int i, float value) {
 				float expected = this.expected()[i];
-				return -1 * (expected * 1 / value) + (1 - expected) * (1 / (1 - value));
+				return -1 * (expected / value) + (1 - expected) / (1 - value);
 			}
 		};
 	}

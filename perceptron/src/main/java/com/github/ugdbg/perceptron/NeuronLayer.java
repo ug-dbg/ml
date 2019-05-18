@@ -1,123 +1,179 @@
 package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.function.scalar.Derivable;
-import org.apache.commons.lang3.StringUtils;
+import com.github.ugdbg.function.vector.Matrix;
+import com.github.ugdbg.function.vector.Vector;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Random;
 
 /**
- * A neuron layer is a set of neurons. <br>
- * They all receive the same input data. <br>
- * They apply their weights and activation function on it. <br>
- * A new vector of the {@link #neurons} length is the output of the layer. <br>
+ * A neuron layer is a collection of neurons that links the input vector to the next layer.
  * <br>
- * Backward propagation (error signal processing and weights update)
- * can be done in a single method : {@link #train(float[], float[], NeuronLayerError)}. <br>
- * An error signal for the whole layer is then available : {@link NeuronLayer}.
+ * {@link #forward(Vector)} method operates an {@link #aggregation(Vector)} and an {@link #activation}
+ * to compute an output vector that will be processed by the next layer.
+ * <br>
+ * We chose to model a neuron layer using : 
+ * <ul>
+ *     <li>a Matrix of {@link #weights} that will be used for the {@link #aggregation(Vector)} operation</li>
+ *     <li>a {@link #bias} vector that will also be used for the {@link #aggregation(Vector)} operation</li>
+ *     <li>a derivable {@link #activation} function that will be used for the {@link #activation(Vector)} operation</li>
+ * </ul>
+ * The {@link #verboseForward(LayerOutput)} method does a {@link #forward(Vector)} and stores the output from
+ * both aggregation and activation : this is the method that should be used to train the network.
+ * <br>
+ * Both weights and bias can then be updated from the next layer error gradient using {@link #update(Gradient, float)}.
  */
-public class NeuronLayer implements Serializable {
+class NeuronLayer implements Serializable {
+	private Matrix weights;
+	private Vector bias;
+	private Derivable activation;
 
 	/**
-	 * The neurons of this layer
+	 * A new neuron layer for the given I/O sizes.
+	 * {@link #weights} matrix is initialized as gaussian (Gaussian ("normally") distributed values).
+	 * @param outputSize the layer output size (the 'height' of the weight matrix and the dimension of the bias vector) 
+	 * @param inputSize  the layer input size (the 'width' of the weight matrix
+	 * @param activation the activation function of the layer
 	 */
-	private final Neuron[] neurons;
-
-	/**
-	 * Standard constructor. given the number of neurons.
-	 * @param nbNeurons the number of neurons.
-	 */
-	public NeuronLayer(int nbNeurons) {
-		this.neurons = new Neuron[nbNeurons];
+	NeuronLayer(int outputSize, int inputSize, Derivable activation) {
+		this.weights = Matrix.randomGaussian(outputSize, inputSize, new Random());
+		this.bias = Vector.of(outputSize);
+		this.activation = activation;
 	}
 
 	/**
-	 * Factory method : build the layer and randomly init all of its neurons weights.
-	 * @param weightSize     the weight size of every neuron (the previous layer neurons size)
-	 * @param learningFactor the learning factor of the layer neurons
-	 * @param activation     the activation function of the neurons
+	 * The layer input size
+	 * @return the width of the {@link #weights} matrix
 	 */
-	public void init(int weightSize, float learningFactor, Derivable activation){
-		for(int i = 0; i < this.neurons.length; i++){
-			this.neurons[i] = Neuron.init(weightSize, learningFactor, activation);
-		}
+	int inputSize() {
+		return this.weights.getN();
 	}
 
 	/**
-	 * Process an input vector. <br>
-	 * Call {@link Neuron#compute(float[])} on every Neuron in {@link #neurons} and return an output vector.
-	 * @param input the input data. Its size must match the {@link #neurons} size.
-	 * @return the processed output vector
+	 * The layer output size
+	 * @return the height of the {@link #weights} matrix 
 	 */
-	public float[] compute(float[] input){
-		float[] out = new float[this.neurons.length];
-		for (int i = 0; i < this.neurons.length; i++) {
-			out[i] = this.neurons[i].compute(input);
-		}
-		return out;
+	int outputSize() {
+		return this.weights.getM();
 	}
 
 	/**
-	 * Backward propagation.
-	 * <ol>
-	 *     <li>
-	 *         process the error signal for every neuron of the layer,
-	 *         given the neuron input and the next layer error for this neuron
-	 *     </li>
-	 *     <li>update every neuron weights with this error signal and the computed neuron output</li>
-	 * </ol>
-	 * @param input  the neuron layer input vector
-	 * @param output the neuron layer output vector
-	 * @param nextLayerErrorSignal the next layer error signal
-	 * @return the neuron layer error (a list of every neuron {@link Neuron.NeuronErrorSignal}
+	 * Get the weights matrix
+	 * @return {@link #weights}
 	 */
-	public NeuronLayerError train(float[] input, float[] output, NeuronLayerError nextLayerErrorSignal){
-		NeuronLayerError layerError = new NeuronLayerError();
-		for (int i = 0; i < this.neurons.length; i++) {
-			Neuron.NeuronErrorSignal errorSignal = this.neurons[i].errorSignal(input, nextLayerErrorSignal.getErrorFor(i));
-			this.neurons[i].updateWeights(errorSignal.getError(), output[i]);
-			layerError.add(errorSignal);
-		}
-		return layerError;
-	}
-
-	@Override
-	public String toString() {
-		String out = "NeuronLayer(" + String.format("%02d", this.neurons.length) + ") {";
-		for(int i = 0; i < this.neurons.length; i++){
-			out += "[" + i + "]" + " " + this.neurons[i].toString() + " | ";
-		}
-		StringUtils.removeEnd(out, " | ");
-		out += '}';
-		return out;
+	Matrix getWeights() {
+		return this.weights;
 	}
 
 	/**
-	 * A neuron layer error signal. <br>
-	 * This is a list of every layer neuron {@link Neuron.NeuronErrorSignal}.
+	 * A short label for the layer : input dimension, weight matrix/bias vector, activation function, output dimension. 
+	 * @return e.g. 'Dimension:200 ⇒ M(10, 200)+V(10) ⇒ 1 / (1 + e(-1 * x)) ⇒ Dimension:10'
 	 */
-	static class NeuronLayerError extends ArrayList<Neuron.NeuronErrorSignal>{
-		public List<Float> getErrorFor(int neuronIndex){
-			return this.stream().map(errorSignal -> errorSignal.getErrorFor(neuronIndex)).collect(Collectors.toList());
-		}
+	public String shortLabel() {
+		return "Dimension:" + this.inputSize() 
+			+ " ⇒ " + this.weights.shortLabel() + "+" + this.bias.shortLabel() 
+			+ " ⇒ " + this.activation.label() 
+			+ " ⇒ Dimension:" + this.outputSize(); 
+	}
 
-		public NeuronLayerError() {}
+	/**
+	 * Do a forward : {@link #aggregation(Vector)} then {@link #activation(Vector)}.
+	 * @param data the input vector
+	 * @return the output from the forward on the current layer
+	 */
+	Vector forward(Vector data) {
+		return this.activation(this.aggregation(data));
+	}
 
-		/**
-		 * Bootstrap : last layer error signal. <br>
-		 * We don't have a 'next layer error signal' for the last neuron layer. <br>
-		 * Build the error signal from the desired output.
- 		 */
-		public NeuronLayerError(float[] wanted, float[] actual, NeuronLayer layer){
-			float[] error = new float[wanted.length];
-			for(int i = 0; i < wanted.length; i++){
-				error[i] = wanted[i] - actual[i];
-			}
-			for(int i = 0; i < layer.neurons.length; i++){
-				this.add(new Neuron.NeuronErrorSignal(error[i], NeuronNetwork.singleValueVector(1, wanted.length, i)));
-			}
+	/**
+	 * Do a {@link #forward(Vector)} but keep a reference to both aggregation and activation outputs.
+	 * @param previous the previous layer output {@link LayerOutput#activation} is used as forward input)
+	 * @return the output from the forward on the current layer
+	 */
+	LayerOutput verboseForward(LayerOutput previous) {
+		LayerOutput output = new LayerOutput();
+		output.aggregations = this.aggregation(previous.activation);
+		output.activation = this.activation(output.aggregations);
+		return output;
+	}
+
+	/**
+	 * Do the aggregation on the given input : apply the vector to the {@link #weights} matrix.
+	 * @param data the input vector
+	 * @return the output vector
+	 */
+	private Vector aggregation(Vector data) {
+		return this.weights.apply(data).sum(this.bias);
+	}
+
+	/**
+	 * Do the activation on the given input : apply the vector to the {@link #activation} function.
+	 * @param data the input vector
+	 * @return the output vector
+	 */
+	private Vector activation(Vector data) {
+		return this.activation.apply(data);
+	}
+
+	/**
+	 * Back-propagation : apply the vector to the derivative of the {@link #activation} function.
+	 * @param data the input vector
+	 * @return the output vector
+	 */
+	Vector activationPrime(Vector data) {
+		return this.activation.derive().apply(data);
+	}
+
+	/**
+	 * Update the weights and bias of the current layer.
+	 * <ul>
+	 *     <li>(weights = weights * (gradient * learningRate * -1)</li>
+	 *     <li>(bias = bias * (gradient * learningRate * -1)</li>
+	 * </ul>
+	 * @param gradient     the gradient to apply
+	 * @param learningRate the learning rate
+	 */
+	void update(Gradient gradient, float learningRate) {
+		this.updateWeights(gradient.weightGradient, learningRate);
+		this.updateBiases(gradient.biasGradient, learningRate);
+	}
+
+	/**
+	 * Update the weights matrix using the error gradient matrix and the learning rate. 
+	 * <br>
+	 * weights = weights * (gradient * learningRate * -1)
+	 * @param gradient     the error gradient matrix
+	 * @param learningRate the learning rate
+	 */
+	private void updateWeights(Matrix gradient, float learningRate) {
+		this.weights.sum(gradient.mult(learningRate * -1f));
+	}
+
+	/**
+	 * Update the bias using the error gradient vector.
+	 * <br>
+	 * (bias = bias * (gradient * learningRate * -1)
+	 * @param gradient     the error gradient vector
+	 * @param learningRate the learning rate
+	 */
+	private void updateBiases(Vector gradient, float learningRate) {
+		this.bias.sum(gradient.mult(learningRate * -1f));
+	}
+
+	/**
+	 * Stores the aggregation and activation output values after a forward.
+	 */
+	static class LayerOutput {
+		Vector aggregations;
+		Vector activation;
+
+		private LayerOutput() {}
+		
+		static LayerOutput activation(Vector activation) {
+			LayerOutput output = new LayerOutput();
+			output.activation = activation;
+			return output;
 		}
 	}
 }
