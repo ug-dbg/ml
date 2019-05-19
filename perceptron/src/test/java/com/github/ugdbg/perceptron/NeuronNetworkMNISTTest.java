@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -91,9 +92,6 @@ public class NeuronNetworkMNISTTest {
 			Assert.fail("Network [" + neuronNetwork + "] is incoherent !");
 		}
 		
-		float accuracy = this.accuracy(neuronNetwork);
-		logger.info("Initial accuracy [{}]%", accuracy * 100);
-		
 		List<NeuronNetwork.Input> inputs = new ArrayList<>();
 		List<Integer> labels = this.mnist.getLabels().asInts();
 		for (int i = 0; i < this.mnist.size(); i++) {
@@ -102,15 +100,18 @@ public class NeuronNetworkMNISTTest {
 				labels.get(i)
 			));
 		}
+		float accuracy = this.samplingAccuracy(neuronNetwork, inputs);
+		logger.info("Initial accuracy on 100 random samples [{}]%", accuracy * 100);
+		
 
 		float learningRate = 3f;
 		logger.info("Training network using batch size [{}] and learning rate [{}]", batchSize, learningRate);
-		for (int i = 0; i < 1; i++) {
-			neuronNetwork.train(inputs, 1, learningRate, batchSize, NeuronNetwork.Executor.parallel(batchSize));
-			accuracy = this.accuracy(neuronNetwork);
-			logger.info("New accuracy [{}]%", accuracy * 100);
-		}
+		neuronNetwork.train(inputs, 2, learningRate, batchSize, NeuronNetwork.Executor.parallel(batchSize));
+		accuracy = this.samplingAccuracy(neuronNetwork, inputs);
+		logger.info("Accuracy on 100 random samples [{}]%", accuracy * 100);
 		Assert.assertTrue(accuracy > 0.8f);
+		
+		logger.info("Total accuracy [{}]%", this.totalAccuracy(neuronNetwork, inputs) * 100);
 
 		File temp = Files.createTempFile("network", "").toFile();
 		temp.deleteOnExit();
@@ -120,25 +121,41 @@ public class NeuronNetworkMNISTTest {
 		}
 		try (ObjectInputStream inputStream =  new ObjectInputStream(new FileInputStream(temp))){
 			NeuronNetwork deserialized = (NeuronNetwork) inputStream.readObject();
-			accuracy = this.accuracy(deserialized);
+			accuracy = this.totalAccuracy(deserialized, inputs);
 			logger.info("Accuracy after serialization [{}]%", accuracy * 100);
 			Assert.assertTrue(accuracy > 0.8f);
 		}
 	}
 	
-	private float accuracy(NeuronNetwork neuronNetwork) {
-		List<Integer> labels = this.mnist.getLabels().asInts();
+	private float samplingAccuracy(NeuronNetwork neuronNetwork, List<NeuronNetwork.Input> inputs) {
 		Random random = new Random();
 		int ok = 0;
 		for (int i = 0; i < 100; i++) {
 			int index = random.nextInt(60000);
-			MNIST.Image image = this.mnist.getImages().get(index);
-			Integer expected = labels.get(index);
-			int actual = neuronNetwork.predict(image.singleVector().normalize(0, 255));
-			if (expected == actual) {
-				ok++;
-			}
+			ok += this.testPrediction(neuronNetwork, inputs.get(index));
 		}
 		return ok / 100f;
+	}
+	
+	private float totalAccuracy(NeuronNetwork neuronNetwork, List<NeuronNetwork.Input> inputs) {
+		AtomicInteger ok = new AtomicInteger(0);
+		
+		List<NeuronNetwork.Task> tasks = new ArrayList<>(this.mnist.size());
+		for (int i = 0; i < this.mnist.size(); i++) {
+			int index = i;
+			tasks.add(NeuronNetwork.Task.of(
+				() -> ok.addAndGet(NeuronNetworkMNISTTest.this.testPrediction(neuronNetwork, inputs.get(index))))
+			);
+		}
+		try {
+			NeuronNetwork.Executor.parallel(32).invokeAll(tasks);
+		} catch (InterruptedException e) {
+			throw new RuntimeException("Interrupted exception evaluating total accuracy !", e);
+		}
+		return ok.floatValue() / this.mnist.size();
+	}
+	
+	private int testPrediction(NeuronNetwork neuronNetwork, NeuronNetwork.Input input) {
+		return input.expected == neuronNetwork.predict(input.input) ? 1 : 0;
 	}
 }
