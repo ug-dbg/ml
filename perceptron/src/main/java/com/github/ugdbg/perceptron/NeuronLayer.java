@@ -2,6 +2,7 @@ package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.function.scalar.Derivable;
 import com.github.ugdbg.function.vector.Matrix;
+import com.github.ugdbg.function.vector.VDerivable;
 import com.github.ugdbg.function.vector.Vector;
 
 import java.io.Serializable;
@@ -27,7 +28,7 @@ import java.util.Random;
 class NeuronLayer implements Serializable {
 	private Matrix weights;
 	private Vector bias;
-	private Derivable activation;
+	private VDerivable activation;
 
 	/**
 	 * A new neuron layer for the given I/O sizes.
@@ -36,12 +37,12 @@ class NeuronLayer implements Serializable {
 	 * @param inputSize  the layer input size (the 'width' of the weight matrix
 	 * @param activation the activation function of the layer
 	 */
-	NeuronLayer(int outputSize, int inputSize, Derivable activation) {
+	NeuronLayer(int outputSize, int inputSize, VDerivable activation) {
 		this.weights = Matrix.randomGaussian(outputSize, inputSize, new Random());
 		this.bias = Vector.of(outputSize);
 		this.activation = activation;
 	}
-
+	
 	/**
 	 * The layer input size
 	 * @return the width of the {@link #weights} matrix
@@ -73,7 +74,7 @@ class NeuronLayer implements Serializable {
 	public String shortLabel() {
 		return "Dimension:" + this.inputSize() 
 			+ " ⇒ " + this.weights.shortLabel() + "+" + this.bias.shortLabel() 
-			+ " ⇒ " + this.activation.label() 
+			+ " ⇒ " + this.activation.label()
 			+ " ⇒ Dimension:" + this.outputSize(); 
 	}
 

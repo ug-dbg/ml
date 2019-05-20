@@ -223,13 +223,18 @@ public class Matrix implements VFunction {
 	private String position(int x, int y) {
 			return "[" + x + ", " + y + "]";
 		}
-	
+
+	@Override
+	public String label() {
+		return this.shortLabel();
+	}
+
 	@Override
 	public String toString() {
-		return Joiner.on("\n").join(this.label());
+		return Joiner.on("\n").join(this.fullLabel());
 	}
 	
-	public List<String> label() {
+	public List<String> fullLabel() {
 		List<String> label = new ArrayList<>();
 		int colLength = this.format.getLength() + 1;
 		label.add("┌" + this.format.spaces(this.getN() * colLength - 1) + "┐");

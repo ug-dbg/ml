@@ -25,6 +25,11 @@ public interface Derivable extends Function {
 			}
 
 			@Override
+			public String label() {
+				return Derivable.this.label();
+			}
+
+			@Override
 			public float[] apply(float[] input) {
 				return Derivable.this.apply(input);
 			}

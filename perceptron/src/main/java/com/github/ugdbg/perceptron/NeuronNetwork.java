@@ -1,6 +1,7 @@
 package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.function.scalar.Derivable;
+import com.github.ugdbg.function.vector.VDerivable;
 import com.github.ugdbg.function.vector.Vector;
 import org.apache.commons.collections4.ListUtils;
 
@@ -84,11 +85,20 @@ public class NeuronNetwork implements Serializable {
 	 * @param activation the layer activation function
 	 */
 	public void addLayer(int layerSize, Derivable activation) {
+		this.addLayer(layerSize, activation.vectorial());
+	}
+
+	/**
+	 * Add a layer as the last layer in this network.
+	 * @param layerSize  the layer size
+	 * @param activation the layer activation function
+	 */
+	public void addLayer(int layerSize, VDerivable activation) {
 		int outputSize = this.outputSize();
 		int layerInputSize = outputSize == -1 ? this.inputDim : outputSize;
 		this.layers.add(new NeuronLayer(layerSize, layerInputSize, activation));
 	}
-
+	
 	/**
 	 * Feed the given vector throught the whole network and return the output vector top index (i.e. prediction class)
 	 * @param data the input vector

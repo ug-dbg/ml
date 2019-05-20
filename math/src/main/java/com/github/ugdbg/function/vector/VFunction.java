@@ -1,6 +1,7 @@
 package com.github.ugdbg.function.vector;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * f:x(x₁,x₂,x₃...xₘ) → y(y₁,y₂,y₃...yₙ)
@@ -27,4 +28,13 @@ public interface VFunction extends Serializable {
 		return new Vector(this.apply(input.getValue()));
 	}
 	
+	/**
+	 * A label for this function. Default to {@link Objects#toString(Object)}.
+	 * <br>
+	 * Override to give this function an explicit, human readable, label
+	 * @return a label for this function.
+	 */
+	default String label() {
+		return Objects.toString(this);
+	}
 }

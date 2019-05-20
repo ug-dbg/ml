@@ -7,7 +7,7 @@ import java.util.Arrays;
 /**
  * sm:x(x₁,x₂,x₃...xₙ) → y(y₁,y₂,y₃...yₙ)
  * <br>
- * where yₖ = exp(xₖ) / ∑₁→ₙ (x₁,x₂,x₃...xₙ) .
+ * where yₖ = exp(xₖ) / ∑₁→ₙ (exp(x₁),exp(x₂),exp(x₃)...exp(xₙ)) .
  */
 public class SoftMax implements VDerivable {
 	@Override
@@ -22,6 +22,11 @@ public class SoftMax implements VDerivable {
 	@Override
 	public VFunction derive() {
 		return (VFunction) input -> this.jacobian(input).apply(input);
+	}
+
+	@Override
+	public String label() {
+		return "e(xₖ) / ∑₁→ₙ (e(x₁),e(x₂),e(x₃)...e(xₙ))";
 	}
 
 	private Matrix jacobian(float[] input) {

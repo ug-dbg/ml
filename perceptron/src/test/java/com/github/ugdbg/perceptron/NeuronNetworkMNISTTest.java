@@ -2,6 +2,7 @@ package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.data.MNIST;
 import com.github.ugdbg.function.scalar.Sigmoid;
+import com.github.ugdbg.function.vector.SoftMax;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,11 +80,23 @@ public class NeuronNetworkMNISTTest {
 	}
 	
 	@Test
-	public void testNeuronNetworkTrainImages() throws IOException, ClassNotFoundException {
-		int batchSize = 30;
+	public void testNeuronNetworkTrainImages_SoftMaxOutput() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
+		neuronNetwork.addLayer(200, new Sigmoid(1));
+		neuronNetwork.addLayer(10, new SoftMax());
+		this.testNeuronNetworkTrainImages(neuronNetwork);
+	}
+	
+	@Test
+	public void testNeuronNetworkTrainImages_SigmoidOutput() throws IOException, ClassNotFoundException {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1));
 		neuronNetwork.addLayer(10, new Sigmoid(1));
+		this.testNeuronNetworkTrainImages(neuronNetwork);
+	}
+	
+	private void testNeuronNetworkTrainImages(NeuronNetwork neuronNetwork) throws IOException, ClassNotFoundException {
+		int batchSize = 30;
 		
 		logger.info("Configured network :");
 		neuronNetwork.shortLabel().forEach(logger::info);

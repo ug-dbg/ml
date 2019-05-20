@@ -45,7 +45,17 @@ public interface Function extends Serializable {
 	 * @return a new vectorial function instance for this function 
 	 */
 	default VFunction vectorial() {
-		return (VFunction) this::apply;
+		return new VFunction() {
+			@Override
+			public float[] apply(float[] input) {
+				return Function.this.apply(input);
+			}
+
+			@Override
+			public String label() {
+				return Function.this.label();
+			}
+		};
 	}
 
 	/**
