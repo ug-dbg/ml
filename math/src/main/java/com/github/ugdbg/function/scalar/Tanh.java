@@ -6,7 +6,7 @@ package com.github.ugdbg.function.scalar;
 public class Tanh implements Derivable {
 	@Override
 	public float apply(float input) {
-		return 0;
+		return (float) Math.tanh(input);
 	}
 
 	/**
