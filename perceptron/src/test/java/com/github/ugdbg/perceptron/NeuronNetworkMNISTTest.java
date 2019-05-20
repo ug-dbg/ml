@@ -2,6 +2,7 @@ package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.data.MNIST;
 import com.github.ugdbg.function.scalar.Sigmoid;
+import com.github.ugdbg.function.scalar.Tanh;
 import com.github.ugdbg.function.vector.SoftMax;
 import org.junit.Assert;
 import org.junit.Before;
@@ -84,7 +85,15 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1));
 		neuronNetwork.addLayer(10, new SoftMax());
-		this.testNeuronNetworkTrainImages(neuronNetwork);
+		this.testNetwork(neuronNetwork, 0.9F);
+	}
+	
+	@Test
+	public void testNeuronNetworkTrainImages_TanH() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
+		neuronNetwork.addLayer(200, new Tanh());
+		neuronNetwork.addLayer(10, new Sigmoid(1));
+		this.testNetwork(neuronNetwork, 0.6F);
 	}
 	
 	@Test
@@ -92,17 +101,17 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1));
 		neuronNetwork.addLayer(10, new Sigmoid(1));
-		this.testNeuronNetworkTrainImages(neuronNetwork);
+		this.testNetwork(neuronNetwork, 0.9F);
 	}
 	
-	private void testNeuronNetworkTrainImages(NeuronNetwork neuronNetwork) throws IOException, ClassNotFoundException {
+	private void testNetwork(NeuronNetwork network, float expectedAccuracy) throws IOException, ClassNotFoundException {
 		int batchSize = 30;
 		
 		logger.info("Configured network :");
-		neuronNetwork.shortLabel().forEach(logger::info);
+		network.shortLabel().forEach(logger::info);
 		
-		if (! neuronNetwork.isCoherent()) {
-			Assert.fail("Network [" + neuronNetwork + "] is incoherent !");
+		if (! network.isCoherent()) {
+			Assert.fail("Network [" + network + "] is incoherent !");
 		}
 		
 		List<NeuronNetwork.Input> inputs = new ArrayList<>();
@@ -113,30 +122,30 @@ public class NeuronNetworkMNISTTest {
 				labels.get(i)
 			));
 		}
-		float accuracy = this.samplingAccuracy(neuronNetwork, inputs);
+		float accuracy = this.samplingAccuracy(network, inputs);
 		logger.info("Initial accuracy on 100 random samples [{}]%", accuracy * 100);
 		
 
 		float learningRate = 3f;
 		logger.info("Training network using batch size [{}] and learning rate [{}]", batchSize, learningRate);
-		neuronNetwork.train(inputs, 2, learningRate, batchSize, NeuronNetwork.Executor.parallel(batchSize));
-		accuracy = this.samplingAccuracy(neuronNetwork, inputs);
+		network.train(inputs, 2, learningRate, batchSize, NeuronNetwork.Executor.parallel(batchSize));
+		accuracy = this.samplingAccuracy(network, inputs);
 		logger.info("Accuracy on 100 random samples [{}]%", accuracy * 100);
-		Assert.assertTrue(accuracy > 0.8f);
+		Assert.assertTrue(accuracy > expectedAccuracy);
 		
-		logger.info("Total accuracy [{}]%", this.totalAccuracy(neuronNetwork, inputs) * 100);
+		logger.info("Total accuracy [{}]%", this.totalAccuracy(network, inputs) * 100);
 
 		File temp = Files.createTempFile("network", "").toFile();
 		temp.deleteOnExit();
 		
 		try (ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream(temp))) {
-			outputStream.writeObject(neuronNetwork);
+			outputStream.writeObject(network);
 		}
 		try (ObjectInputStream inputStream =  new ObjectInputStream(new FileInputStream(temp))){
 			NeuronNetwork deserialized = (NeuronNetwork) inputStream.readObject();
 			accuracy = this.totalAccuracy(deserialized, inputs);
 			logger.info("Accuracy after serialization [{}]%", accuracy * 100);
-			Assert.assertTrue(accuracy > 0.8f);
+			Assert.assertTrue(accuracy > expectedAccuracy);
 		}
 	}
 	
