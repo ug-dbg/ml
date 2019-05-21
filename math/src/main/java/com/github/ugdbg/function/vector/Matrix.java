@@ -231,7 +231,7 @@ public class Matrix implements VFunction {
 
 	@Override
 	public String toString() {
-		return Joiner.on("\n").join(this.fullLabel());
+		return this.shortLabel();
 	}
 	
 	public List<String> fullLabel() {
