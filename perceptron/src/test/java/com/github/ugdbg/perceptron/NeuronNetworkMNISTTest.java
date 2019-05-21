@@ -3,6 +3,8 @@ package com.github.ugdbg.perceptron;
 import com.github.ugdbg.data.MNIST;
 import com.github.ugdbg.function.scalar.Sigmoid;
 import com.github.ugdbg.function.scalar.Tanh;
+import com.github.ugdbg.function.scalar.domain.DomainCheckException;
+import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.SoftMax;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -96,6 +98,22 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1));
 		neuronNetwork.addLayer(10, new Sigmoid(1));
+		this.testNetwork(neuronNetwork, 0.9F);
+	}
+	
+	@Test
+	public void testNeuronNetworkTrainImages_SigmoidOutput_DomainCheck() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
+		neuronNetwork.addLayer(200, new Sigmoid(1).domainCheck(true));
+		neuronNetwork.addLayer(10, new Sigmoid(1).domainCheck(true));
+		this.testNetwork(neuronNetwork, 0.9F);
+	}
+	
+	@Test(expected = DomainCheckException.class)
+	public void testNeuronNetworkTrainImages_SigmoidOutput_BadDomain() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
+		neuronNetwork.addLayer(200, new Sigmoid(1).onDomain(Domains.R_MINUS_STAR).domainCheck(true));
+		neuronNetwork.addLayer(10, new Sigmoid(1).domainCheck(true));
 		this.testNetwork(neuronNetwork, 0.9F);
 	}
 
