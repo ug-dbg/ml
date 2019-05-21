@@ -22,11 +22,12 @@ public class DomainsTest {
 		Assert.assertEquals("]0.0, +∞[",             R_PLUS_STAR.toString());
 		Assert.assertEquals("]-∞, 0.0[",             R_MINUS_STAR.toString());
 		Assert.assertEquals("]-∞, 0.0[ ⋃ ]0.0, +∞[", R_STAR.toString());
-		Assert.assertEquals("]0.0, 0.0[",            R_MINUS_STAR.inter(R_PLUS_STAR).toString());
+		Assert.assertEquals("[0.0, 0.0]",            R_MINUS.inter(R_PLUS).toString());
+		Assert.assertEquals("∅",                     R_MINUS_STAR.inter(R_PLUS_STAR).toString());
 
 		Assert.assertFalse("0 ∈ " + R_MINUS_STAR, R_MINUS_STAR.isIn(0F));
 		
-		Domain zero = R_MINUS_STAR.inter(R_PLUS_STAR);
+		Domain<Float> zero = R_MINUS_STAR.inter(R_PLUS_STAR);
 		Assert.assertFalse("0 ∈ " + zero, zero.isIn(0F));
 		Assert.assertFalse("7 ∈ " + zero, zero.isIn(7F));
 		Assert.assertTrue("7 ∈ " + R_STAR, R_STAR.isIn(7F));
@@ -50,7 +51,7 @@ public class DomainsTest {
 		Assert.assertFalse(union + " is empty", inter.isEmpty());
 
 		union = new Union(R_MINUS_STAR, R_PLUS_STAR).inter(new Segment(0f, 0f));
-		Assert.assertFalse(union + " is empty", union.isEmpty());
+		Assert.assertTrue(union + " is empty", union.isEmpty());
 	}
 	
 }

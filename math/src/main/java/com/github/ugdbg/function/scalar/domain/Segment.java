@@ -165,11 +165,14 @@ public class Segment implements Domain<Float> {
 	
 	@Override
 	public boolean isEmpty() {
-		return this.from.bigger(this.to.at) && this.to.smaller(this.from.at);
+		return this.from.at > this.to.at || (this.from.at.equals(this.to.at) && this.from.open && this.to.open);
 	}
 
 	@Override
 	public int compareTo(Domain o) {
+		if (! (o instanceof Segment) && ! (o instanceof Union)) {
+			return o.compareTo(this) * -1;
+		}
 		Segment lowest = o instanceof Segment ? (Segment) o : ((Union) o).lowest(); 
 		return new CompareToBuilder().append(this.from, lowest.from).append(this.to, lowest.to).toComparison();
 	}
