@@ -16,6 +16,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -167,6 +168,7 @@ public class MNIST {
 		this.labelsTarget = extract(this.labelsTarget.toPath()).toFile();
 		this.images = Image.images(this.imagesTarget.toPath());
 		this.labels = Labels.labels(this.labelsTarget.toPath());
+		IntStream.range(0, this.size()).forEach(i -> this.images.get(i).label = this.labels.row[i]);
 	}
 
 	/**
@@ -306,13 +308,14 @@ public class MNIST {
 	}
 	
 	/**
-	 * An image from the MNIST dataset.
+	 * An image and its label from the MNIST dataset.
 	 * <br>
 	 * Data is stored as a float[][] matrix.
 	 */
 	public static class Image {
 		private static final int IMAGE_FILE_MAGIC_NUMBER = 2051;
 		private int[][] image;
+		private int label = -1;
 
 		/**
 		 * Private constructor. Please use {@link #images} to load image from files. 
@@ -326,7 +329,15 @@ public class MNIST {
 				this.image[row] = new Row(numCols, bb).row;
 			}
 		}
-		
+
+		/**
+		 * What is actually written in this image ?
+		 * @return {@link #label}, the actual value of the image (a [0-9] integer)
+		 */
+		public int getLabel() {
+			return this.label;
+		}
+
 		/**
 		 * Get a row (line) from the image at a given index.
 		 * @param at the image row index

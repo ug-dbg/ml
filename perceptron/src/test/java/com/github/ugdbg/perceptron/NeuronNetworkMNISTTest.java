@@ -4,6 +4,7 @@ import com.github.ugdbg.data.MNIST;
 import com.github.ugdbg.function.scalar.Sigmoid;
 import com.github.ugdbg.function.scalar.Tanh;
 import com.github.ugdbg.function.vector.SoftMax;
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,7 +16,9 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -89,6 +92,14 @@ public class NeuronNetworkMNISTTest {
 	}
 	
 	@Test
+	public void testNeuronNetworkTrainImages_SigmoidOutput() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
+		neuronNetwork.addLayer(200, new Sigmoid(1));
+		neuronNetwork.addLayer(10, new Sigmoid(1));
+		this.testNetwork(neuronNetwork, 0.9F);
+	}
+
+	@Test
 	public void testNeuronNetworkTrainImages_TanH() throws IOException, ClassNotFoundException {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Tanh());
@@ -96,44 +107,33 @@ public class NeuronNetworkMNISTTest {
 		this.testNetwork(neuronNetwork, 0.6F);
 	}
 	
-	@Test
-	public void testNeuronNetworkTrainImages_SigmoidOutput() throws IOException, ClassNotFoundException {
-		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
-		neuronNetwork.addLayer(200, new Sigmoid(1));
-		neuronNetwork.addLayer(10, new Sigmoid(1));
-		this.testNetwork(neuronNetwork, 0.9F);
-	}
-	
 	private void testNetwork(NeuronNetwork network, float expectedAccuracy) throws IOException, ClassNotFoundException {
 		int batchSize = 30;
 		
-		logger.info("Configured network :");
+		logger.info("[CONFIGURE] Configured network :");
 		network.shortLabel().forEach(logger::info);
 		
 		if (! network.isCoherent()) {
 			Assert.fail("Network [" + network + "] is incoherent !");
 		}
 		
-		List<NeuronNetwork.Input> inputs = new ArrayList<>();
-		List<Integer> labels = this.mnist.getLabels().asInts();
-		for (int i = 0; i < this.mnist.size(); i++) {
-			inputs.add(new NeuronNetwork.Input(
-				this.mnist.getImages().get(i).singleVector().normalize(0, 255), 
-				labels.get(i)
-			));
-		}
-		float accuracy = this.samplingAccuracy(network, inputs);
-		logger.info("Initial accuracy on 100 random samples [{}]%", accuracy * 100);
+		List<NeuronNetwork.Input> inputs = this.mnistToInputs();
+		List<List<NeuronNetwork.Input>> halves = Lists.partition(inputs, this.mnist.size() / 2);
+		List<NeuronNetwork.Input> testHalf  = halves.get(0);
+		List<NeuronNetwork.Input> trainHalf = halves.get(1);
+
+		float accuracy = this.samplingAccuracy(network, testHalf);
+		logger.info("[ACCURACY] [SAMPLING] [INIT] [{}]%", accuracy * 100);
 		
 
 		float learningRate = 3f;
-		logger.info("Training network using batch size [{}] and learning rate [{}]", batchSize, learningRate);
-		network.train(inputs, 2, learningRate, batchSize, NeuronNetwork.Executor.parallel(batchSize));
-		accuracy = this.samplingAccuracy(network, inputs);
-		logger.info("Accuracy on 100 random samples [{}]%", accuracy * 100);
+		logger.info("[TRAINING] batch size [{}], learning rate [{}]", batchSize, learningRate);
+		network.train(trainHalf, 2, learningRate, batchSize, NeuronNetwork.Executor.parallel(batchSize));
+		accuracy = this.samplingAccuracy(network, testHalf);
+		logger.info("[ACCURACY] [SAMPLING] [{}]%", accuracy * 100);
 		Assert.assertTrue(accuracy > expectedAccuracy);
 		
-		logger.info("Total accuracy [{}]%", this.totalAccuracy(network, inputs) * 100);
+		logger.info("[ACCURACY] [TOTAL] [{}]%", this.totalAccuracy(network, testHalf) * 100);
 
 		File temp = Files.createTempFile("network", "").toFile();
 		temp.deleteOnExit();
@@ -143,41 +143,43 @@ public class NeuronNetworkMNISTTest {
 		}
 		try (ObjectInputStream inputStream =  new ObjectInputStream(new FileInputStream(temp))){
 			NeuronNetwork deserialized = (NeuronNetwork) inputStream.readObject();
-			accuracy = this.totalAccuracy(deserialized, inputs);
-			logger.info("Accuracy after serialization [{}]%", accuracy * 100);
+			accuracy = this.totalAccuracy(deserialized, testHalf);
+			logger.info("[CONTROL] [ACCURACY] [SAMPLING] After serialization/deserialization [{}]%", accuracy * 100);
 			Assert.assertTrue(accuracy > expectedAccuracy);
 		}
 	}
 	
-	private float samplingAccuracy(NeuronNetwork neuronNetwork, List<NeuronNetwork.Input> inputs) {
-		Random random = new Random();
-		int ok = 0;
-		for (int i = 0; i < 100; i++) {
-			int index = random.nextInt(60000);
-			ok += this.testPrediction(neuronNetwork, inputs.get(index));
-		}
-		return ok / 100f;
+	private float samplingAccuracy(NeuronNetwork network, List<NeuronNetwork.Input> inputs) {
+		AtomicInteger ok = new AtomicInteger();
+		new Random().ints(100, 0, inputs.size()).forEach(i -> ok.addAndGet(this.testPrediction(network, inputs.get(i))));
+		return ok.get() / 100f;
 	}
 	
 	private float totalAccuracy(NeuronNetwork neuronNetwork, List<NeuronNetwork.Input> inputs) {
 		AtomicInteger ok = new AtomicInteger(0);
 		
-		List<NeuronNetwork.Task> tasks = new ArrayList<>(this.mnist.size());
-		for (int i = 0; i < this.mnist.size(); i++) {
-			int index = i;
-			tasks.add(NeuronNetwork.Task.of(
-				() -> ok.addAndGet(NeuronNetworkMNISTTest.this.testPrediction(neuronNetwork, inputs.get(index))))
-			);
-		}
+		List<NeuronNetwork.Task> tasks = new ArrayList<>(inputs.size());
+		inputs.forEach(input -> tasks.add(
+			NeuronNetwork.Task.of(() -> ok.addAndGet(NeuronNetworkMNISTTest.this.testPrediction(neuronNetwork, input))
+		)));
+		
 		try {
-			NeuronNetwork.Executor.parallel(32).invokeAll(tasks);
+			NeuronNetwork.Executor.parallel(Runtime.getRuntime().availableProcessors()).invokeAll(tasks);
 		} catch (InterruptedException e) {
 			throw new RuntimeException("Interrupted exception evaluating total accuracy !", e);
 		}
-		return ok.floatValue() / this.mnist.size();
+		return ok.floatValue() / inputs.size();
 	}
 	
 	private int testPrediction(NeuronNetwork neuronNetwork, NeuronNetwork.Input input) {
 		return input.expected == neuronNetwork.predict(input.input) ? 1 : 0;
+	}
+	
+	private List<NeuronNetwork.Input> mnistToInputs() {
+		return this.mnist.getImages().stream().map(NeuronNetworkMNISTTest::imageToInput).collect(Collectors.toList());
+	}
+	
+	private static NeuronNetwork.Input imageToInput(MNIST.Image image) {
+		return new NeuronNetwork.Input(image.singleVector().normalize(0, 255), image.getLabel());
 	}
 }
