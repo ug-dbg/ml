@@ -183,11 +183,14 @@ public class NeuronNetwork implements Serializable {
 			layerOutputs.add(layerOutput);
 		}
 		
+		// Get output δ and add it to the list of δs : this is a specific operation on the last layer.
+		// The δ variable will be used to compute the previous layer δ : it is dereferenced at each layer iteration. 
 		Vector target = Vector.oneHot(input.expected, this.outputSize());
 		Vector delta = this.getOutputDelta(layerOutput, target);
 		List<Vector> deltas = new ArrayList<>();
 		deltas.add(delta);
 
+		// The output δ for each layer is computed from the δ of the previous layer.
 		for (int i = this.layers.size() - 1; i >= 1; i--) {
 			NeuronLayer layer  = this.layers.get(i);
 			NeuronLayer prev   = this.layers.get(i - 1);
