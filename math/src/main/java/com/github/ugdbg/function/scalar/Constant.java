@@ -1,14 +1,17 @@
 package com.github.ugdbg.function.scalar;
 
+import com.github.ugdbg.function.scalar.domain.Domains;
+
 /**
  * u:x → k
  */
-public class Constant implements Derivable {
+public class Constant extends DomainCheckedFunction<Constant> implements Derivable {
 	
 	private final float k;
 
 	public Constant(float k) {
 		this.k = k;
+		this.domain = Domains.R_CLOSED;
 	}
 
 	@Override
@@ -17,7 +20,7 @@ public class Constant implements Derivable {
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return this.k;
 	}
 

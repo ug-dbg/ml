@@ -5,13 +5,13 @@ package com.github.ugdbg.function.scalar;
  * <br>
  * y:x → x if x > 0, 0 else.
  */
-public class ReLu implements Derivable {
+public class ReLu extends DomainCheckedFunction<ReLu> implements Derivable {
 	
 	@Override
 	public Function derive() {
 		return new Function() {
 			@Override
-			public float apply(float input) {
+			public float doApply(float input) {
 				return input > 0 ? 1 : 0;
 			}
 
@@ -23,7 +23,7 @@ public class ReLu implements Derivable {
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return input > 0 ? input : 0;
 	}
 

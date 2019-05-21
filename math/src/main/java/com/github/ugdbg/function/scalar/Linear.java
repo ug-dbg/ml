@@ -3,7 +3,7 @@ package com.github.ugdbg.function.scalar;
 /**
  * u:x → a * x + b
  */
-public class Linear implements Derivable {
+public class Linear extends DomainCheckedFunction<Linear> implements Derivable {
 	
 	private final float a;
 	
@@ -20,7 +20,7 @@ public class Linear implements Derivable {
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return this.a * input + this.b;
 	}
 

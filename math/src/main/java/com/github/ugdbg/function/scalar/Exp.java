@@ -3,14 +3,15 @@ package com.github.ugdbg.function.scalar;
 /**
  * u:x → e(x)
  */
-public class Exp implements Derivable {
+public class Exp extends DomainCheckedFunction<Exp> implements Derivable {
+
 	@Override
 	public Derivable derive() {
 		return this;
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return (float) Math.exp(input);
 	}
 

@@ -10,7 +10,7 @@ public interface Composed extends Function {
 	Function g();
 
 	@Override
-	default float apply(float input) {
+	default float doApply(float input) {
 		return this.f().apply(this.g().apply(input));
 	}
 	

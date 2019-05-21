@@ -1,11 +1,9 @@
 package com.github.ugdbg.function.scalar;
 
-import org.apache.commons.lang3.StringUtils;
-
 /**
  * u:x → f(x) * g(x)
  */
-public class Product implements Derivable {
+public class Product extends DomainCheckedFunction<Product> implements Derivable {
 	
 	private final Derivable f;
 	
@@ -14,6 +12,10 @@ public class Product implements Derivable {
 	public Product(Derivable f, Derivable g) {
 		this.f = f;
 		this.g = g;
+		this.domainCheck(f.domainCheck() && g.domainCheck());
+		if (f.domain() != null && g.domain() != null) {
+			this.domain = f.domain().inter(g.domain());
+		}
 	}
 	
 	@Override
@@ -28,7 +30,7 @@ public class Product implements Derivable {
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return this.f.apply(input) * this.g.apply(input);
 	}
 

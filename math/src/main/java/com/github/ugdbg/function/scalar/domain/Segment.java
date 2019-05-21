@@ -6,6 +6,7 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -29,7 +30,7 @@ public class Segment implements Domain<Float> {
 	 * <br>
 	 * Open status is not final : it can be updated using {@link #open(boolean, boolean)}.
 	 */
-	private static abstract class Border {
+	private static abstract class Border implements Serializable {
 		final Float at;
 		
 		/** Border open status : true is open. false is closed. */

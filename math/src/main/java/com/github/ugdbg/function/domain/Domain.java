@@ -3,6 +3,8 @@ package com.github.ugdbg.function.domain;
 import com.github.ugdbg.function.scalar.domain.Segment;
 import com.github.ugdbg.function.scalar.domain.Union;
 
+import java.io.Serializable;
+
 /**
  * The domain of a function is the set of argument values for which the function is defined.
  * <br>
@@ -10,7 +12,7 @@ import com.github.ugdbg.function.scalar.domain.Union;
  * <br>
  * It can either be a {@link Segment} or a union of domains : {@link Union}.
  */
-public interface Domain<T> extends Comparable<Domain> {
+public interface Domain<T> extends Comparable<Domain>, Serializable {
 
 	/**
 	 * Is the given input inside the domain ?

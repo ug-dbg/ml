@@ -3,9 +3,9 @@ package com.github.ugdbg.function.scalar;
 /**
  * u:x → tanh(x)
  */
-public class Tanh implements Derivable {
+public class Tanh extends DomainCheckedFunction<Tanh> implements Derivable {
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return (float) Math.tanh(input);
 	}
 

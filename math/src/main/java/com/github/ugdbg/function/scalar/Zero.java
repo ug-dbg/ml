@@ -3,14 +3,14 @@ package com.github.ugdbg.function.scalar;
 /**
  * u:x → 0
  */
-public class Zero implements Derivable {
+public class Zero extends DomainCheckedFunction<Zero> implements Derivable {
 	@Override
 	public Derivable derive() {
 		return this;
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		return 0;
 	}
 

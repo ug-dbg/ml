@@ -23,6 +23,7 @@ public class Domains {
 	public static final Domain<Float> R = new Segment(NEGATIVE_INFINITY, POSITIVE_INFINITY);
 	public static final Domain<Float> R_CLOSED = new Segment(NEGATIVE_INFINITY, POSITIVE_INFINITY).open(false, false);
 	public static final Domain<Float> R_PLUS = new Segment(0F, POSITIVE_INFINITY).open(false, true);
+	public static final Domain<Float> R_PLUS_CLOSED = new Segment(0F, POSITIVE_INFINITY).open(false, false);
 	public static final Domain<Float> R_MINUS = new Segment(NEGATIVE_INFINITY, 0F).open(true, false);
 	public static final Domain<Float> R_PLUS_STAR = new Segment(0F, POSITIVE_INFINITY).open(true, true);
 	public static final Domain<Float> R_MINUS_STAR = new Segment(NEGATIVE_INFINITY, 0F).open(true, true);

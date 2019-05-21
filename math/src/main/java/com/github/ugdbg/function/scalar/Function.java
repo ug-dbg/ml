@@ -1,5 +1,8 @@
 package com.github.ugdbg.function.scalar;
 
+import com.github.ugdbg.function.domain.Domain;
+import com.github.ugdbg.function.scalar.domain.DomainCheckException;
+import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.VFunction;
 import com.github.ugdbg.function.vector.Vector;
 
@@ -16,8 +19,41 @@ public interface Function extends Serializable {
 	 * @param input the input float value
 	 * @return the output float value of the function
 	 */
-	float apply(float input);
+	float doApply(float input);
 
+	/**
+	 * Check the domain and apply the function on an input ℝ number.
+	 * @param input the input float value
+	 * @return the output float value of the function
+	 * @throws DomainCheckException if domain check is enable, domain is not null and input is outside of domain.
+	 */
+	default float apply(float input) {
+		if (this.domainCheck() && this.domain() != null && ! this.domain().isIn(input)) {
+			throw new DomainCheckException(this, input);
+		}
+		return this.doApply(input);
+	}
+
+	/**
+	 * What is the domain of this function ?
+	 * <br>
+	 * Default to {@link Domains#R}
+	 * @return the function domain
+	 */
+	default Domain<Float> domain() {
+		return Domains.R;
+	}
+
+	/**
+	 * Should the domain be checked ? 
+	 * <br>
+	 * Default to false;
+	 * @return true if the domain must be checked before every {@link #apply(float)} call.
+	 */
+	default boolean domainCheck() {
+		return false;
+	}
+	
 	/**
 	 * Compose the current function with another one  : f ∘ g.
 	 * <br>

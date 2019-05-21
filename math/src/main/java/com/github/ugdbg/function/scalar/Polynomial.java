@@ -5,7 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * u:x → α*x^n + β*x^(n-1) + ... + λ*x + μ
  */
-public class Polynomial implements Derivable {
+public class Polynomial extends DomainCheckedFunction<Polynomial> implements Derivable {
 	
 	/** x^0 to x^n : makes iteration easier */
 	private final float[] factors;
@@ -45,7 +45,7 @@ public class Polynomial implements Derivable {
 	}
 
 	@Override
-	public float apply(float input) {
+	public float doApply(float input) {
 		float sum = 0;
 		for (int i = 0; i < this.factors.length; i++) {
 			sum += this.factors[i] * Math.pow(input, i);
