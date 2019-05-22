@@ -161,7 +161,7 @@ public class NeuronNetworkMNISTTest {
 		}
 		try (ObjectInputStream inputStream =  new ObjectInputStream(new FileInputStream(temp))){
 			NeuronNetwork deserialized = (NeuronNetwork) inputStream.readObject();
-			accuracy = this.totalAccuracy(deserialized, testHalf);
+			accuracy = this.samplingAccuracy(deserialized, testHalf);
 			logger.info("[CONTROL] [ACCURACY] [SAMPLING] After serialization/deserialization [{}]%", accuracy * 100);
 			Assert.assertTrue(accuracy > expectedAccuracy);
 		}
