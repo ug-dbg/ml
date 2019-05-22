@@ -126,7 +126,29 @@ public class VDomainTest {
 		domains.add(r5_plus); 
 		domains.add(inter); 
 		domains.add(union);
+		
+		domains.add(VDomains.R_ANY);
+		domains.add(VDomain.anyDimension(Domains.R_CLOSED));
+		domains.add(VDomain.anyDimension(new Segment(-1f, -1f)));
 
-		Assert.assertEquals(11, domains.size());
+		Assert.assertEquals(14, domains.size());
+	}
+	
+	@Test
+	public void test_R_anyDimension() {
+		Assert.assertTrue(VDomains.R_ANY.isIn(Vector.of(0f)));
+		Assert.assertTrue(VDomains.R_ANY.isIn(Vector.of(-5f, 4f)));
+		Assert.assertTrue(VDomains.R_ANY.isIn(Vector.of(Float.MAX_VALUE, 0f, Float.MIN_VALUE)));
+		Assert.assertEquals("(]-∞, +∞[)ⁿ", VDomains.R_ANY.toString());
+
+		VDomain segmentN = VDomain.anyDimension(new Segment(0f, 1f).open(false, false));
+		Assert.assertEquals("([0.0, 1.0])ⁿ", segmentN.toString());
+		
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f, 0f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f, 1f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f, 0.5f, 0.005f, 0f)));
+		Assert.assertFalse(segmentN.isIn(Vector.of(0f, 0.5f, 1.001f, 0f)));
+		Assert.assertFalse(segmentN.isIn(Vector.of(0f, 0.5f, 0.7f, -0.02f, 0.3f)));
 	}
 }

@@ -4,6 +4,7 @@ import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.Vector;
 import com.google.common.base.Joiner;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import java.util.Arrays;
@@ -32,6 +33,26 @@ public class VDomain implements Domain<Vector> {
 		VDomain vDomain = new VDomain(dimension);
 		IntStream.range(0, dimension).forEach(value -> vDomain.domains[value] = domain);
 		return vDomain;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static VDomain anyDimension(Domain<Float> domain) {
+		return new VDomain(new Domain[] {domain}) {
+			@Override
+			public int dimension() {
+				return Integer.MAX_VALUE;
+			}
+
+			@Override
+			public boolean isIn(Vector x) {
+				return Arrays.stream(ArrayUtils.toObject(x.getValue())).allMatch(domain::isIn);
+			}
+
+			@Override
+			public String toString() {
+				return "(" + domain.toString() + ")ⁿ";
+			}
+		};
 	}
 	
 	public int dimension() {
@@ -78,7 +99,7 @@ public class VDomain implements Domain<Vector> {
 		}
 		
 		CompareToBuilder builder = new CompareToBuilder();
-		for (int i = 0; i < this.dimension(); i++) {
+		for (int i = 0; i < this.domains.length; i++) {
 			builder.append(this.domains[i], ((VDomain) o).domains[i]);
 		}
 		return builder.toComparison();
