@@ -1,6 +1,5 @@
 package com.github.ugdbg.perceptron;
 
-import com.github.ugdbg.function.scalar.Derivable;
 import com.github.ugdbg.function.vector.Matrix;
 import com.github.ugdbg.function.vector.VDerivable;
 import com.github.ugdbg.function.vector.Vector;
