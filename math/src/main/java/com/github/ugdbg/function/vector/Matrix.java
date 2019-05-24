@@ -1,6 +1,9 @@
 package com.github.ugdbg.function.vector;
 
 import com.github.ugdbg.function.FloatFormat;
+import com.github.ugdbg.function.domain.Domain;
+import com.github.ugdbg.function.vector.domain.VDomain;
+import com.github.ugdbg.function.vector.domain.VDomains;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.commons.lang3.ArrayUtils;
@@ -15,6 +18,7 @@ import java.util.stream.Collectors;
  * <ul>
  *     <li>y(y₁,y₂,y₃...yₙ) = M(m,n) * x(x₁,x₂,x₃...xₘ)</li>
  *     <li>M(m,n) is a rectangular (m,n) matrix.</li>
+ *     <li>default {@link #domain} is {@link VDomains#R(int)} for dimension m</li>
  * </ul>
  * <br>
  * Example : 
@@ -27,18 +31,19 @@ import java.util.stream.Collectors;
  * └              ┘
  * </pre>
  */
-public class Matrix implements VFunction {
+public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	
 	private final float[][] weights;
 	private transient FloatFormat format = new FloatFormat(3, 2);
 
 	/**
-	 * New Matrix M(m,n=
+	 * New Matrix M(m,n)
 	 * @param m the matrix height (output dimension)
 	 * @param n the matrix width (input dimension)
 	 */
 	public Matrix(int m, int n) {
 		this.weights = new float[m][n];
+		this.domain = VDomains.R(this.getN());
 	}
 
 	/**
@@ -52,17 +57,31 @@ public class Matrix implements VFunction {
 			throw new IllegalArgumentException("input matrix weights are not square. Several widths : " + widths);
 		}
 		this.weights = weights;
+		this.domain = VDomains.R(this.getN());
+	}
+
+	/**
+	 * Set the domain for any component of an input vector.
+	 * <br>
+	 * {@link #domain()} would then return a {@link VDomain#of(Domain, int)} )} for a {@link #getN()} dimension.
+	 * @param domain the domain do use.
+	 * @return the current Matrix instance
+	 */
+	public Matrix onDomain(Domain<Float> domain) {
+		return super.onDomain(VDomain.of(domain, this.getN()));
+	}
+	
+	@Override
+	public Matrix onDomain(VDomain domain) {
+		if (domain.dimension() != this.getN()) {
+			throw new IllegalArgumentException("Domain [" + domain + "] is not applicable for [" + this + "]");
+		}
+		return super.onDomain(domain);
 	}
 
 	@Override
-	public float[] apply(float[] input) {
-		int width = this.getN();
+	public float[] doApply(float[] input) {
 		int height = this.getM();
-		if (width != input.length) {
-			throw new IllegalArgumentException(
-				"Vector length [" + input.length + "] != matrix width [" + width + "]"
-			);
-		}
 		
 		float[] out = new float[height];
 		for (int i = 0; i < height; i++) {

@@ -3,7 +3,7 @@ package com.github.ugdbg.perceptron;
 import com.github.ugdbg.data.MNIST;
 import com.github.ugdbg.function.scalar.Sigmoid;
 import com.github.ugdbg.function.scalar.Tanh;
-import com.github.ugdbg.function.scalar.domain.DomainCheckException;
+import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.SoftMax;
 import com.google.common.collect.Lists;

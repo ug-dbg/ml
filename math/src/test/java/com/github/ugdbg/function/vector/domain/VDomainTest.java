@@ -36,7 +36,7 @@ public class VDomainTest {
 		Assert.assertFalse(r5.isIn(Vector.of(-2f, 3f, Float.NEGATIVE_INFINITY, 0f, 1f)));
 		
 		Assert.assertFalse(r5.isEmpty());
-		Assert.assertEquals("(]-∞, +∞[) X (]-∞, +∞[) X (]-∞, +∞[) X (]-∞, +∞[) X (]-∞, +∞[)", r5.toString());
+		Assert.assertEquals("(]-∞, +∞[)⁵", r5.toString());
 	}
 	
 	@Test
@@ -49,7 +49,7 @@ public class VDomainTest {
 		Assert.assertFalse(r5_closed.isIn(Vector.of(-2f, 3f, Float.NaN, 0f, 1f)));
 		
 		Assert.assertFalse(r5_closed.isEmpty());
-		Assert.assertEquals("([-∞, +∞]) X ([-∞, +∞]) X ([-∞, +∞]) X ([-∞, +∞]) X ([-∞, +∞])", r5_closed.toString());
+		Assert.assertEquals("([-∞, +∞])⁵", r5_closed.toString());
 	}
 	
 	@Test
@@ -63,14 +63,7 @@ public class VDomainTest {
 		Assert.assertFalse(union.isIn(Vector.of(-2, -2f, -2f, -2f, -2f)));
 		
 		Assert.assertFalse(union.isEmpty());
-		Assert.assertEquals(
-			"(]-2.0, -1.0[ ⋃ [0.0, +∞[) " 
-			+ "X (]-2.0, -1.0[ ⋃ [0.0, +∞[) " 
-			+ "X (]-2.0, -1.0[ ⋃ [0.0, +∞[) " 
-			+ "X (]-2.0, -1.0[ ⋃ [0.0, +∞[) " 
-			+ "X (]-2.0, -1.0[ ⋃ [0.0, +∞[)", 
-			union.toString()
-		);
+		Assert.assertEquals("(]-2.0, -1.0[ ⋃ [0.0, +∞[)⁵", union.toString());
 	}
 	
 	@Test
@@ -87,10 +80,7 @@ public class VDomainTest {
 		Assert.assertFalse(inter.isIn(Vector.of(-1.5f, 1.5f, 1.5f, 1.5f, 1.5f)));
 		
 		Assert.assertFalse(inter.isEmpty());
-		Assert.assertEquals(
-			"([0.0, 5.0]) X ([0.0, 5.0]) X ([0.0, 5.0]) X ([0.0, 5.0]) X ([0.0, 5.0])", 
-			inter.toString()
-		);
+		Assert.assertEquals("([0.0, 5.0])⁵", inter.toString());
 	}
 	
 	@Test

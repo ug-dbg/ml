@@ -1,7 +1,7 @@
 package com.github.ugdbg.function.scalar;
 
 import com.github.ugdbg.function.domain.Domain;
-import com.github.ugdbg.function.scalar.domain.DomainCheckException;
+import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.VFunction;
 import com.github.ugdbg.function.vector.Vector;
@@ -48,7 +48,7 @@ public interface Function extends Serializable {
 	 * Should the domain be checked ? 
 	 * <br>
 	 * Default to false;
-	 * @return true if the domain must be checked before every {@link #apply(float)} call.
+	 * @return true if the domain must be checked before every {@link #doApply(float)} call.
 	 */
 	default boolean domainCheck() {
 		return false;
@@ -83,7 +83,7 @@ public interface Function extends Serializable {
 	default VFunction vectorial() {
 		return new VFunction() {
 			@Override
-			public float[] apply(float[] input) {
+			public float[] doApply(float[] input) {
 				return Function.this.apply(input);
 			}
 

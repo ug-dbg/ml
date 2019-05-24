@@ -30,7 +30,7 @@ public interface Derivable extends Function {
 			}
 
 			@Override
-			public float[] apply(float[] input) {
+			public float[] doApply(float[] input) {
 				return Derivable.this.apply(input);
 			}
 		};

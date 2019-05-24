@@ -9,9 +9,9 @@ import java.util.Arrays;
  * <br>
  * where yₖ = exp(xₖ) / ∑₁→ₙ (exp(x₁),exp(x₂),exp(x₃)...exp(xₙ)) .
  */
-public class SoftMax implements VDerivable {
+public class SoftMax extends DomainCheckedFunction<SoftMax> implements VDerivable {
 	@Override
-	public float[] apply(float[] input) {
+	public float[] doApply(float[] input) {
 		Float[] inputObjects = ArrayUtils.toObject(input);
 		float sum = this.expSum(inputObjects);
 		return ArrayUtils.toPrimitive(

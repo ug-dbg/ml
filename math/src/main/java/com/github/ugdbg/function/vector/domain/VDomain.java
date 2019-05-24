@@ -1,5 +1,6 @@
 package com.github.ugdbg.function.vector.domain;
 
+import com.github.ugdbg.function.ExponentFormat;
 import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.Vector;
@@ -107,6 +108,9 @@ public class VDomain implements Domain<Vector> {
 
 	@Override
 	public String toString() {
+		if (Arrays.stream(this.domains).distinct().count() == 1) {
+			return "(" + this.domains[0] + ")" + ExponentFormat.superscript(this.dimension());
+		}
 		return "(" + Joiner.on(") X (").join(this.domains) + ")";
 	}
 

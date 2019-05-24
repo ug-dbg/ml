@@ -1,5 +1,9 @@
 package com.github.ugdbg.function.vector;
 
+import com.github.ugdbg.function.domain.DomainCheckException;
+import com.github.ugdbg.function.vector.domain.VDomain;
+import com.github.ugdbg.function.vector.domain.VDomains;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -15,7 +19,34 @@ public interface VFunction extends Serializable {
 	 * @param input the input vector
 	 * @return the output
 	 */
-	float[] apply(float[] input);
+	float[] doApply(float[] input);
+	
+	default float[] apply(float[] input) {
+		Vector inputVector = new Vector(input);
+		if (this.domainCheck() && this.domain() != null && ! this.domain().isIn(inputVector)) {
+			throw new DomainCheckException(this, inputVector);
+		}
+		return this.doApply(input);
+	}
+
+	/**
+	 * What is the domain of this function ? 
+	 * Default to {@link VDomains#R_ANY}.
+	 * @return the domain for the function 
+	 */
+	default VDomain domain() {
+		return VDomains.R_ANY;
+	}
+
+	/**
+	 * Should the domain be checked ? 
+	 * <br>
+	 * Default to false;
+	 * @return true if the domain must be checked before every {@link #doApply(float[])} call.
+	 */
+	default boolean domainCheck() {
+		return false;
+	}
 	
 	/**
 	 * Apply the function to an input vector.

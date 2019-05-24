@@ -9,7 +9,7 @@ package com.github.ugdbg.function.vector;
  *     <li>tₖ = (t₁,t₂,t₃...tₙ) is the expected output</li>
  * </ul>
  */
-public class CrossEntropy implements ErrorFunction {
+public class CrossEntropy extends DomainCheckedFunction<CrossEntropy> implements ErrorFunction {
 	
 	private final float[] expected;
 
@@ -23,7 +23,7 @@ public class CrossEntropy implements ErrorFunction {
 	}
 
 	@Override
-	public float[] apply(float[] output) {
+	public float[] doApply(float[] output) {
 		float[] error = new float[output.length];
 		for (int i = 0; i < output.length; i++) {
 			error[i] = this.calculate(i, output[i]);

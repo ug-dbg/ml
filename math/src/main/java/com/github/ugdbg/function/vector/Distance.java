@@ -3,7 +3,7 @@ package com.github.ugdbg.function.vector;
 /**
  * d:x(x₁,x₂,x₃...xₙ) → y(y₁,y₂,y₃...yₙ) where yₖ = (xₖ - tₖ)² and tₖ = (t₁,t₂,t₃...tₙ) is the expected output.
  */
-public class Distance implements ErrorFunction {
+public class Distance extends DomainCheckedFunction<Distance> implements ErrorFunction {
 	
 	private final float[] expected;
 
@@ -17,7 +17,7 @@ public class Distance implements ErrorFunction {
 	}
 
 	@Override
-	public float[] apply(float[] output) {
+	public float[] doApply(float[] output) {
 		float[] distance = new float[output.length];
 		for (int i = 0; i < output.length; i++) {
 			distance[i] = this.calculate(i, output[i]);
