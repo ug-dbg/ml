@@ -90,7 +90,7 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1));
 		neuronNetwork.addLayer(10, new SoftMax());
-		this.testNetwork(neuronNetwork, 0.9F);
+		this.testNetwork(neuronNetwork, 0.8F);
 	}
 	
 	@Test
@@ -98,7 +98,7 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1));
 		neuronNetwork.addLayer(10, new Sigmoid(1));
-		this.testNetwork(neuronNetwork, 0.9F);
+		this.testNetwork(neuronNetwork, 0.8F);
 	}
 	
 	@Test
@@ -106,7 +106,7 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1).domainCheck(true));
 		neuronNetwork.addLayer(10, new Sigmoid(1).domainCheck(true));
-		this.testNetwork(neuronNetwork, 0.9F);
+		this.testNetwork(neuronNetwork, 0.8F);
 	}
 	
 	@Test(expected = DomainCheckException.class)
@@ -114,7 +114,7 @@ public class NeuronNetworkMNISTTest {
 		NeuronNetwork neuronNetwork = new NeuronNetwork(784);
 		neuronNetwork.addLayer(200, new Sigmoid(1).onDomain(Domains.R_MINUS_STAR).domainCheck(true));
 		neuronNetwork.addLayer(10, new Sigmoid(1).domainCheck(true));
-		this.testNetwork(neuronNetwork, 0.9F);
+		this.testNetwork(neuronNetwork, 0.8F);
 	}
 
 	@Test
