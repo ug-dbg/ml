@@ -1,9 +1,11 @@
 package com.github.ugdbg.function.vector;
 
-import com.github.ugdbg.function.FloatFormat;
 import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.vector.domain.VDomain;
 import com.github.ugdbg.function.vector.domain.VDomains;
+import com.github.ugdbg.vector.format.FloatFormat;
+import com.github.ugdbg.vector.format.Format;
+import com.github.ugdbg.vector.primitive.FloatVector;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.commons.lang3.ArrayUtils;
@@ -34,7 +36,7 @@ import java.util.stream.Collectors;
 public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	
 	private final float[][] weights;
-	private transient FloatFormat format = new FloatFormat(3, 2);
+	private transient Format format = new FloatFormat(3, 2);
 
 	/**
 	 * New Matrix M(m,n)
@@ -85,7 +87,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 		
 		float[] out = new float[height];
 		for (int i = 0; i < height; i++) {
-			out[i] = linearCombination(input, this.line(i).getValue());
+			out[i] = linearCombination(input, this.line(i).getPrimitiveValue());
 		}
 		
 		return out;
@@ -136,7 +138,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @param b vector b
 	 * @return a new Matrix instance.
 	 */
-	public static Matrix outer(Vector a, Vector b) {
+	public static Matrix outer(FloatVector a, FloatVector b) {
 		return new Matrix(a.dimension(), b.dimension()).operation((outer, i, j) -> outer.at(i, j, a.at(i) * b.at(j)));
 	}
 
@@ -240,25 +242,25 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	}
 
 	/**
-	 * Get a line of the matrix @(i=x) as a Vector 
+	 * Get a line of the matrix @(i=x) as a FloatVector 
 	 * @param x the height coordinate
-	 * @return a new Vector of dimension {@link #getN()}
+	 * @return a new FloatVector of dimension {@link #getN()}
 	 */
-	public Vector line(int x) {
+	public FloatVector line(int x) {
 		try {
-			return new Vector(this.weights[x]);
+			return new FloatVector(this.weights[x]);
 		} catch (RuntimeException e) {
 			throw new IllegalArgumentException("Illegal position for matrix " + this.shortLabel() + " @ [" + x + "]");
 		}
 	}
 	
 	/**
-	 * Get a column of the matrix @(j=y) as a Vector 
+	 * Get a column of the matrix @(j=y) as a FloatVector 
 	 * @param y the width coordinate
-	 * @return a new Vector of dimension {@link #getM()}
+	 * @return a new FloatVector of dimension {@link #getM()}
 	 */
-	public Vector col(int y) {
-		Vector out = Vector.of(this.getM());
+	public FloatVector col(int y) {
+		FloatVector out = FloatVector.of(this.getM());
 		for (int i = 0; i < this.getM(); i++) {
 			out.at(i, this.at(i, y));
 		}
@@ -269,8 +271,8 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * Get a representation of this matrix as a list of line vectors.
 	 * @return a {@link #getM()} sized list of Vectors of dimension {@link #getN()}
 	 */
-	public List<Vector> lines() {
-		List<Vector> lines = new ArrayList<>(this.getM());
+	public List<FloatVector> lines() {
+		List<FloatVector> lines = new ArrayList<>(this.getM());
 		for (int i = 0; i < this.getM(); i++) {
 			lines.add(this.line(i));
 		}
@@ -281,8 +283,8 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * Get a representation of this matrix as a list of column vectors.
 	 * @return a {@link #getN()} sized list of Vectors of dimension {@link #getM()}
 	 */
-	public List<Vector> cols() {
-		List<Vector> lines = new ArrayList<>(this.getN());
+	public List<FloatVector> cols() {
+		List<FloatVector> lines = new ArrayList<>(this.getN());
 		for (int j = 0; j < this.getN(); j++) {
 			lines.add(this.col(j));
 		}

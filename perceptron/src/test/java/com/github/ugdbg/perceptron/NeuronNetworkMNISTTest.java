@@ -198,6 +198,6 @@ public class NeuronNetworkMNISTTest {
 	}
 	
 	private static NeuronNetwork.Input imageToInput(MNIST.Image image) {
-		return new NeuronNetwork.Input(image.singleVector().normalize(0, 255), image.getLabel());
+		return new NeuronNetwork.Input(image.singleVector().normalize(0f, 255f), image.getLabel());
 	}
 }

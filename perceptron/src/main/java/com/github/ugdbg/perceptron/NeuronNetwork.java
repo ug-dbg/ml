@@ -1,9 +1,12 @@
 package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.function.scalar.Derivable;
+import com.github.ugdbg.function.vector.Matrix;
 import com.github.ugdbg.function.vector.VDerivable;
-import com.github.ugdbg.function.vector.Vector;
+import com.github.ugdbg.vector.primitive.FloatVector;
 import org.apache.commons.collections4.ListUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -20,7 +23,7 @@ import java.util.stream.IntStream;
  * <br>
  * It supports :
  * <ul>
- *     <li>prediction : {@link #predict(Vector)}</li>
+ *     <li>prediction : {@link #predict(FloatVector)}</li>
  *     <li>back propagation : {@link #backProp(Input)}</li>
  *     <li>training using batching of inputs : {@link #train(List, int, float, int, Executor)}</li>
  *     <li>parallel/sequential back-propagation for a batch</li>
@@ -29,6 +32,8 @@ import java.util.stream.IntStream;
  * <a href ="https://www.miximum.fr/blog/introduction-au-deep-learning-2/">Thibault Jouannic's blog</a>.
  */
 public class NeuronNetwork implements Serializable {
+	
+	private static final transient Logger logger = LoggerFactory.getLogger(NeuronNetwork.class); 
 	
 	private final int inputDim;
 	private List<NeuronLayer> layers = new ArrayList<>();
@@ -104,7 +109,7 @@ public class NeuronNetwork implements Serializable {
 	 * @param data the input vector
 	 * @return the network prediction for the input
 	 */
-	public int predict(Vector data) {
+	public int predict(FloatVector data) {
 		return this.feedForward(data).topIndex();
 	}
 	
@@ -113,8 +118,8 @@ public class NeuronNetwork implements Serializable {
 	 * @param data the input vector
 	 * @return the network prediction for the input
 	 */
-	private Vector feedForward(Vector data) {
-		Vector activation = data;
+	private FloatVector feedForward(FloatVector data) {
+		FloatVector activation = data;
 		for (NeuronLayer layer : this.layers) {
 			activation = layer.forward(activation);
 		}
@@ -174,39 +179,44 @@ public class NeuronNetwork implements Serializable {
 	 * @return the back-propagation output, as a collection of error gradient (weights and bias) (one per layer)
 	 */
 	private Outputs backProp(Input input) {
-		NeuronLayer.LayerOutput layerOutput = NeuronLayer.LayerOutput.activation(input.input);
-		List<NeuronLayer.LayerOutput> layerOutputs = new ArrayList<>();
-		layerOutputs.add(layerOutput);
-		
-		for (NeuronLayer layer : this.layers) {
-			layerOutput = layer.verboseForward(layerOutput);
+		try {
+			NeuronLayer.LayerOutput layerOutput = NeuronLayer.LayerOutput.activation(input.input);
+			List<NeuronLayer.LayerOutput> layerOutputs = new ArrayList<>();
 			layerOutputs.add(layerOutput);
-		}
-		
-		// Get output δ and add it to the list of δs : this is a specific operation on the last layer.
-		// The δ variable will be used to compute the previous layer δ : it is dereferenced at each layer iteration. 
-		Vector target = Vector.oneHot(input.expected, this.outputSize());
-		Vector delta = this.getOutputDelta(layerOutput, target);
-		List<Vector> deltas = new ArrayList<>();
-		deltas.add(delta);
 
-		// The output δ for each layer is computed from the δ of the previous layer.
-		for (int i = this.layers.size() - 1; i >= 1; i--) {
-			NeuronLayer layer  = this.layers.get(i);
-			NeuronLayer prev   = this.layers.get(i - 1);
-			Vector activationPrime = prev.activationPrime(layerOutputs.get(i).aggregations);
-			delta = activationPrime.mult(layer.getWeights().transpose().apply(delta));
+			for (NeuronLayer layer : this.layers) {
+				layerOutput = layer.verboseForward(layerOutput);
+				layerOutputs.add(layerOutput);
+			}
+
+			// Get output δ and add it to the list of δs : this is a specific operation on the last layer.
+			// The δ variable will be used to compute the previous layer δ : it is dereferenced at each layer iteration. 
+			FloatVector target = FloatVector.oneHot(input.expected, this.outputSize());
+			FloatVector delta = this.getOutputDelta(layerOutput, target);
+			List<FloatVector> deltas = new ArrayList<>();
 			deltas.add(delta);
-		}
-		
-		Collections.reverse(deltas);
-		Outputs outputs = new Outputs();
 
-		for (int i = 0; i < this.layers.size(); i++) {
-			outputs.add(new Gradient(deltas.get(i).outer(layerOutputs.get(i).activation), deltas.get(i)));
+			// The output δ for each layer is computed from the δ of the previous layer.
+			for (int i = this.layers.size() - 1; i >= 1; i--) {
+				NeuronLayer layer = this.layers.get(i);
+				NeuronLayer prev = this.layers.get(i - 1);
+				FloatVector activationPrime = prev.activationPrime(layerOutputs.get(i).aggregations);
+				delta = activationPrime.mult(layer.getWeights().transpose().apply(delta));
+				deltas.add(delta);
+			}
+
+			Collections.reverse(deltas);
+			Outputs outputs = new Outputs();
+
+			for (int i = 0; i < this.layers.size(); i++) {
+				outputs.add(new Gradient(Matrix.outer(deltas.get(i), layerOutputs.get(i).activation), deltas.get(i)));
+			}
+
+			return outputs;
+		} catch (RuntimeException e) {
+			logger.error("Error back-propagating input [{}]", input, e);
+			throw e;
 		}
-		
-		return outputs;
 	}
 
 	/**
@@ -229,20 +239,25 @@ public class NeuronNetwork implements Serializable {
 	 * @param target the expected network output
 	 * @return the delta (δ) of the network for the given last layer output
 	 */
-	private Vector getOutputDelta(NeuronLayer.LayerOutput output, Vector target) {
-		return Vector.sub(output.activation, target);
+	private FloatVector getOutputDelta(NeuronLayer.LayerOutput output, FloatVector target) {
+		return FloatVector.sub(output.activation, target);
 	}
 
 	/**
 	 * A network input is a vector and an expected class (which should match the output vector top index)
 	 */
 	public static class Input {
-		Vector input;
+		FloatVector input;
 		int expected;
 	
-		public Input(Vector input, int expected) {
+		public Input(FloatVector input, int expected) {
 			this.input = input;
 			this.expected = expected;
+		}
+
+		@Override
+		public String toString() {
+			return "Input{" + "expected=" + this.expected + "input=" + this.input + '}';
 		}
 	}
 

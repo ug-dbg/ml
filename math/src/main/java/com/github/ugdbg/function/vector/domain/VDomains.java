@@ -1,7 +1,7 @@
 package com.github.ugdbg.function.vector.domain;
 
 import com.github.ugdbg.function.scalar.domain.Domains;
-import com.github.ugdbg.function.vector.Vector;
+import com.github.ugdbg.vector.IVector;
 
 /**
  * Some common vector domains.
@@ -21,7 +21,7 @@ public class VDomains {
 	 * ℝⁿ.
 	 * V(x₁,x₂,x₃...xₙ) ∈ ℝⁿ if and only if : 
 	 * <ul>
-	 *     <li>{@link Vector#dimension()} = n</li>
+	 *     <li>{@link IVector#dimension()} = n</li>
 	 *     <li>∀ k ∈ [1, n], xₖ ∈ ℝ</li>
 	 * </ul>
 	 */
@@ -33,7 +33,7 @@ public class VDomains {
 	 * (ℝ ∪ {−∞, +∞})ⁿ.
 	 * V(x₁,x₂,x₃...xₙ) ∈ ℝⁿ if and only if : 
 	 * <ul>
-	 *     <li>{@link Vector#dimension()} = n</li>
+	 *     <li>{@link IVector#dimension()} = n</li>
 	 *     <li>∀ k ∈ [1, n], xₖ ∈ (ℝ ∪ {−∞, +∞})</li>
 	 * </ul>
 	 */
@@ -45,7 +45,7 @@ public class VDomains {
 	 * ℝ+ⁿ.
 	 * V(x₁,x₂,x₃...xₙ) ∈ ℝⁿ if and only if : 
 	 * <ul>
-	 *     <li>{@link Vector#dimension()} = n</li>
+	 *     <li>{@link IVector#dimension()} = n</li>
 	 *     <li>∀ k ∈ [1, n], xₖ ∈ ℝ+</li>
 	 * </ul>
 	 */

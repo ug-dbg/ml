@@ -4,7 +4,7 @@ import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.VFunction;
-import com.github.ugdbg.function.vector.Vector;
+import com.github.ugdbg.vector.primitive.FloatVector;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -112,7 +112,7 @@ public interface Function extends Serializable {
 	 * @param input the input vector
 	 * @return an output vector y(y₁,y₂,y₃...yₙ) where yᵢ = this(xᵢ)
 	 */
-	default Vector apply(Vector input) {
-		return new Vector(this.apply(input.getValue()));
+	default FloatVector apply(FloatVector input) {
+		return FloatVector.of(this.apply(input.getPrimitiveValue()));
 	}
 }

@@ -15,13 +15,13 @@ public class DomainsTest {
 	public void testCommonDomains() {
 		Assert.assertEquals("∅", new Segment(1F, 0F).toString());
 		
-		Assert.assertEquals("]-∞, +∞[",              R.toString());
+		Assert.assertEquals("ℝ",                     R.toString());
 		Assert.assertEquals("[-∞, +∞]",              R_CLOSED.toString());
-		Assert.assertEquals("[0.0, +∞[",             R_PLUS.toString());
-		Assert.assertEquals("]-∞, 0.0]",             R_MINUS.toString());
-		Assert.assertEquals("]0.0, +∞[",             R_PLUS_STAR.toString());
-		Assert.assertEquals("]-∞, 0.0[",             R_MINUS_STAR.toString());
-		Assert.assertEquals("]-∞, 0.0[ ⋃ ]0.0, +∞[", R_STAR.toString());
+		Assert.assertEquals("ℝ+",                    R_PLUS.toString());
+		Assert.assertEquals("ℝ-",                    R_MINUS.toString());
+		Assert.assertEquals("ℝ+*",                   R_PLUS_STAR.toString());
+		Assert.assertEquals("ℝ-*",                   R_MINUS_STAR.toString());
+		Assert.assertEquals("ℝ*",                    R_STAR.toString());
 		Assert.assertEquals("[0.0, 0.0]",            R_MINUS.inter(R_PLUS).toString());
 		Assert.assertEquals("∅",                     R_MINUS_STAR.inter(R_PLUS_STAR).toString());
 

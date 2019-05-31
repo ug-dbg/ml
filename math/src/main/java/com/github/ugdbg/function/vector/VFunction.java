@@ -3,6 +3,7 @@ package com.github.ugdbg.function.vector;
 import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.vector.domain.VDomain;
 import com.github.ugdbg.function.vector.domain.VDomains;
+import com.github.ugdbg.vector.primitive.FloatVector;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -22,7 +23,7 @@ public interface VFunction extends Serializable {
 	float[] doApply(float[] input);
 	
 	default float[] apply(float[] input) {
-		Vector inputVector = new Vector(input);
+		FloatVector inputVector = FloatVector.of(input);
 		if (this.domainCheck() && this.domain() != null && ! this.domain().isIn(inputVector)) {
 			throw new DomainCheckException(this, inputVector);
 		}
@@ -55,8 +56,8 @@ public interface VFunction extends Serializable {
 	 * @param input the input vector
 	 * @return the output
 	 */
-	default Vector apply(Vector input) {
-		return new Vector(this.apply(input.getValue()));
+	default FloatVector apply(FloatVector input) {
+		return FloatVector.of(this.apply(input.getPrimitiveValue()));
 	}
 	
 	/**

@@ -169,6 +169,7 @@ public class Segment implements Domain<Float> {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public int compareTo(Domain o) {
 		if (! (o instanceof Segment) && ! (o instanceof Union)) {
 			return o.compareTo(this) * -1;
@@ -224,6 +225,7 @@ public class Segment implements Domain<Float> {
 	 * @param others the other domains
 	 * @return a new domain instance, intersection of 'this' and all the 'other' domains
 	 */
+	@SuppressWarnings("unchecked")
 	public Domain inter(Collection<Domain> others) {
 		Domain current = this;
 		for (Domain other : others) {

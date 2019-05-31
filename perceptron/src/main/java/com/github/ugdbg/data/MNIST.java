@@ -1,9 +1,10 @@
 package com.github.ugdbg.data;
 
-import com.github.ugdbg.function.vector.Vector;
+import com.github.ugdbg.vector.primitive.FloatVector;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -351,14 +352,14 @@ public class MNIST {
 		 * Get the image data as a single vector.
 		 * @return a new Vector with the inlined {@link #image} data matrix.
 		 */
-		public Vector singleVector() {
+		public FloatVector singleVector() {
 			List<Float> out = new ArrayList<>();
 			for (int[] row : this.image) {
 				for (int value : row) {
 					out.add((float) value);
 				}
 			}
-			return new Vector(out.toArray(new Float[0]));
+			return FloatVector.of(ArrayUtils.toPrimitive(out.toArray(new Float[0])));
 		}
 		
 		public List<String> label() {

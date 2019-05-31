@@ -1,4 +1,4 @@
-package com.github.ugdbg.function;
+package com.github.ugdbg.vector.format;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -8,7 +8,7 @@ import org.apache.commons.lang3.StringUtils;
  * Useful to format matrices or vector. 
  * <br>
  */
-public class FloatFormat {
+public class FloatFormat implements Format {
 	private final int length;
 	private final String format;
 
@@ -28,6 +28,7 @@ public class FloatFormat {
 	 * The output length of any float after it is formatted.
 	 * @return {@link #length}
 	 */
+	@Override
 	public int getLength() {
 		return this.length;
 	}
@@ -42,6 +43,7 @@ public class FloatFormat {
 	 * @param value the float value to format
 	 * @return the formatted value
 	 */
+	@Override
 	public String format(Object value) {
 		String out = String.format(this.format, value);
 		if (value != null && value.equals(Float.NEGATIVE_INFINITY)) {
@@ -57,14 +59,5 @@ public class FloatFormat {
 			out = StringUtils.center("!", this.length);
 		}
 		return out;
-	}
-
-	/**
-	 * Create a String of X spaces
-	 * @param amount the amout of spaces
-	 * @return a String of X spaces
-	 */
-	public String spaces(int amount) {
-		return new String(new char[Math.max(amount, 0)]).replace('\0', ' ');
 	}
 }

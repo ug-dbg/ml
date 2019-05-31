@@ -1,11 +1,10 @@
 package com.github.ugdbg.function.vector.domain;
 
-import com.github.ugdbg.function.ExponentFormat;
 import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.scalar.domain.Domains;
-import com.github.ugdbg.function.vector.Vector;
+import com.github.ugdbg.vector.IVector;
+import com.github.ugdbg.vector.format.Format;
 import com.google.common.base.Joiner;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import java.util.Arrays;
@@ -16,7 +15,7 @@ import java.util.stream.IntStream;
  * <br>
  * e.g. ℝⁿ
  */
-public class VDomain implements Domain<Vector> {
+public class VDomain implements Domain<IVector> {
 	
 	private Domain<Float>[] domains;
 
@@ -45,8 +44,8 @@ public class VDomain implements Domain<Vector> {
 			}
 
 			@Override
-			public boolean isIn(Vector x) {
-				return Arrays.stream(ArrayUtils.toObject(x.getValue())).allMatch(domain::isIn);
+			public boolean isIn(IVector x) {
+				return Arrays.stream(x.getValue()).allMatch(number -> domain.isIn(number.floatValue()));
 			}
 
 			@Override
@@ -61,10 +60,10 @@ public class VDomain implements Domain<Vector> {
 	}
 
 	@Override
-	public boolean isIn(Vector x) {
+	public boolean isIn(IVector x) {
 		this.dimensionCheck(x);
 		return ! IntStream.range(0, this.domains.length)
-			.filter(value -> ! this.domains[value].isIn(x.at(value)))
+			.filter(value -> ! this.domains[value].isIn(x.at(value).floatValue()))
 			.findFirst()
 			.isPresent();
 	}
@@ -109,12 +108,12 @@ public class VDomain implements Domain<Vector> {
 	@Override
 	public String toString() {
 		if (Arrays.stream(this.domains).distinct().count() == 1) {
-			return "(" + this.domains[0] + ")" + ExponentFormat.superscript(this.dimension());
+			return "(" + this.domains[0] + ")" + Format.superscript(this.dimension());
 		}
 		return "(" + Joiner.on(") X (").join(this.domains) + ")";
 	}
 
-	private void dimensionCheck(Vector input) {
+	private void dimensionCheck(IVector input) {
 		if (this.dimension() != input.dimension()) {
 			throw new RuntimeException(
 				"Vector [" + input.shortLabel() + "] does not match domain dimension [" + this.domains.length + "]"

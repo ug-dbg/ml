@@ -1,7 +1,7 @@
 package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.function.vector.Matrix;
-import com.github.ugdbg.function.vector.Vector;
+import com.github.ugdbg.vector.primitive.FloatVector;
 
 /**
  * A gradient that can be applied to a {@link NeuronLayer} when back-propagating.
@@ -10,13 +10,13 @@ import com.github.ugdbg.function.vector.Vector;
  */
 class Gradient {
 	Matrix weightGradient;
-	Vector biasGradient;
+	FloatVector biasGradient;
 
 	Gradient(int inputSize, int outputSize) {
-		this(new Matrix(outputSize, inputSize), Vector.of(outputSize));
+		this(new Matrix(outputSize, inputSize), FloatVector.of(outputSize));
 	}
 	
-	Gradient(Matrix weightGradient, Vector biasGradient) {
+	Gradient(Matrix weightGradient, FloatVector biasGradient) {
 		this.weightGradient = weightGradient;
 		this.biasGradient = biasGradient;
 	}
