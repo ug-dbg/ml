@@ -1,11 +1,13 @@
 package com.github.ugdbg.vector;
 
 import com.github.ugdbg.NumberUtils;
+import com.github.ugdbg.vector.format.FloatFormat;
 import com.github.ugdbg.vector.format.Format;
 import com.google.common.base.Joiner;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Function;
@@ -16,13 +18,12 @@ import java.util.stream.Collectors;
  * <br>
  * This implementation is not suitable for primitives and relies a lot on auto-boxing : performance is not that good.
  * @param <T> the number implementation for the vector components
- * @param <V>
  */
-public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> implements IVector<V>, Serializable {
+public class Vector<T extends Number & Comparable<T>> implements IVector<Vector<T>>, Serializable {
 	
 	protected final T[] value;
 	protected final Class<T> type;
-	protected Format format;
+	protected Format format = new FloatFormat(5, 5);
 
 	/**
 	 * Constructor from explicit array value.
@@ -52,7 +53,7 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	 * @return a new vector instance
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends Number & Comparable<T>> Vector<T, ?> of(Class<T> type, int dimension) {
+	public static <T extends Number & Comparable<T>> Vector<T> of(Class<T> type, int dimension) {
 		return new Vector<>((T[]) Array.newInstance(type, dimension)).operation(Vector::zero);
 	}
 
@@ -64,13 +65,13 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	 * @return a copy of the source vector
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends Number & Comparable<T>, V extends Vector<T, V>> V copy(V source) {
-		try {
-			T[] array = source.value;
-			return (V) source.getClass().getDeclaredConstructor(array.getClass()).newInstance((Object) array);
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException("Could not instantiate [" + source.getClass() + "]", e);
+	public static <T extends Number & Comparable<T>, V extends Vector<T>> V copy(V source) {
+		for (Constructor<?> constructor : source.getClass().getDeclaredConstructors()) {
+			try {
+				return (V) constructor.newInstance((Object) source.value);
+			} catch (ReflectiveOperationException ignored) {}
 		}
+		throw new RuntimeException("Could not instantiate [" + source.getClass() + "]");
 	}
 
 	/**
@@ -81,8 +82,8 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	 * @param <T> the components Number type
 	 * @return a new one-hot vector instance
 	 */
-	public static <T extends Number & Comparable<T>> Vector<T, ?> oneHot(Class<T> type, int index, int length) {
-		Vector<T, ?> oneHot = Vector.of(type, length);
+	public static <T extends Number & Comparable<T>> Vector<T> oneHot(Class<T> type, int index, int length) {
+		Vector<T> oneHot = Vector.of(type, length);
 		oneHot.value[index] = NumberUtils.one(type);
 		return oneHot;
 	}
@@ -92,10 +93,9 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	 * @param a the left operand
 	 * @param b the right operand
 	 * @param <T> the components Number type
-	 * @param <V> the vector implementation. It should have a public constructor with explicit value array parameter. 
 	 * @return a new vector instance that is the sum of a and b
 	 */
-	public static <T extends Number & Comparable<T>, V extends Vector<T, V>> V sum(V a, V b) {
+	public static <T extends Number & Comparable<T>> Vector<T> sum(Vector<T> a, Vector<T> b) {
 		return copy(a).sum(b);
 	}
 
@@ -104,18 +104,16 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	 * @param a the left operand
 	 * @param b the right operand
 	 * @param <T> the components Number type
-	 * @param <V> the vector implementation. It should have a public constructor with explicit value array parameter. 
 	 * @return a new vector instance that is a - b
 	 */
-	public static <T extends Number & Comparable<T>, V extends Vector<T, V>> V sub(V a, V b) {
+	public static <T extends Number & Comparable<T>> Vector<T> sub(Vector<T> a, Vector<T> b) {
 		return copy(a).sub(b);
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	public V format(Format format) {
+	public Vector<T> format(Format format) {
 		this.format = format;
-		return (V) this;
+		return this;
 	}
 
 	@Override
@@ -143,26 +141,26 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	}
 	
 	@Override
-	public V sum(V other) {
+	public Vector<T> sum(Vector<T> other) {
 		return this.operation((vector, i) -> vector.at(i, vector.add(vector.at(i), other.at(i))));
 	}
 	
 	@Override
-	public V sub(V other) {
+	public Vector<T> sub(Vector<T> other) {
 		return this.operation((vector, i) -> vector.at(i, vector.sub(vector.at(i), other.at(i))));
 	}
 	
-	public V mult(float scalar) {
+	public Vector<T> mult(float scalar) {
 		return this.operation((vector, i) -> vector.at(i, vector.mult(vector.at(i), scalar)));
 	}
 	
 	@Override
-	public V mult(V other) {
+	public Vector<T> mult(Vector<T> other) {
 		return this.operation((vector, i) -> this.at(i, vector.mult(vector.at(i), other.at(i))));
 	}
 	
 	@Override
-	public V div(V other) {
+	public Vector<T> div(Vector<T> other) {
 		return this.operation((vector, i) -> this.at(i, vector.div(vector.at(i), other.at(i))));
 	}
 	
@@ -183,7 +181,7 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	}
 
 	@Override
-	public V normalize(float min, float max) {
+	public Vector<T> normalize(float min, float max) {
 		return this.normalize(
 			NumberUtils.convertNumberToTargetClass(min, this.type), 
 			NumberUtils.convertNumberToTargetClass(max, this.type)
@@ -197,7 +195,7 @@ public class Vector<T extends Number & Comparable<T>, V extends Vector<T, V>> im
 	 * @param max    the number max bound inclusive
 	 * @return the current vector instance normalized to the [0, 1] segment.
 	 */
-	public V normalize(T min, T max) {
+	public Vector<T> normalize(T min, T max) {
 		return this.operation((vector, i) -> this.at(i, NumberUtils.normalize(this.at(i), min, max)));
 	}
 	

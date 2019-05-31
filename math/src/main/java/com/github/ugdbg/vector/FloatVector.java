@@ -8,7 +8,7 @@ import java.io.Serializable;
 /**
  * A vector of Float values.
  */
-public class FloatVector extends Vector<Float, FloatVector> implements Serializable  {
+public class FloatVector extends Vector<Float> implements Serializable  {
 	
 	public FloatVector(Float[] value) {
 		super(value);
