@@ -1,9 +1,10 @@
 package com.github.ugdbg.perceptron;
 
+import com.github.ugdbg.datatypes.TYPE;
 import com.github.ugdbg.function.vector.Matrix;
 import com.github.ugdbg.function.vector.VDerivable;
 import com.github.ugdbg.function.vector.domain.VDomains;
-import com.github.ugdbg.vector.primitive.FloatVector;
+import com.github.ugdbg.vector.Vector;
 
 import java.io.Serializable;
 import java.util.Random;
@@ -11,23 +12,23 @@ import java.util.Random;
 /**
  * A neuron layer is a collection of neurons that links the input vector to the next layer.
  * <br>
- * {@link #forward(FloatVector)} method operates an {@link #aggregation(FloatVector)} and an {@link #activation}
+ * {@link #forward(Vector)} method operates an {@link #aggregation(Vector)} and an {@link #activation}
  * to compute an output vector that will be processed by the next layer.
  * <br>
  * We chose to model a neuron layer using : 
  * <ul>
- *     <li>a Matrix of {@link #weights} that will be used for the {@link #aggregation(FloatVector)} operation</li>
- *     <li>a {@link #bias} vector that will also be used for the {@link #aggregation(FloatVector)} operation</li>
- *     <li>a derivable {@link #activation} function that will be used for the {@link #activation(FloatVector)} operation</li>
+ *     <li>a Matrix of {@link #weights} that will be used for the {@link #aggregation(Vector)} operation</li>
+ *     <li>a {@link #bias} vector that will also be used for the {@link #aggregation(Vector)} operation</li>
+ *     <li>a derivable {@link #activation} function that will be used for the {@link #activation(Vector)} operation</li>
  * </ul>
- * The {@link #verboseForward(LayerOutput)} method does a {@link #forward(FloatVector)} and stores the output from
+ * The {@link #verboseForward(LayerOutput)} method does a {@link #forward(Vector)} and stores the output from
  * both aggregation and activation : this is the method that should be used to train the network.
  * <br>
  * Both weights and bias can then be updated from the next layer error gradient using {@link #update(Gradient, float)}.
  */
 class NeuronLayer implements Serializable {
 	private Matrix weights;
-	private FloatVector bias;
+	private Vector bias;
 	private VDerivable activation;
 
 	/**
@@ -37,9 +38,9 @@ class NeuronLayer implements Serializable {
 	 * @param inputSize  the layer input size (the 'width' of the weight matrix
 	 * @param activation the activation function of the layer
 	 */
-	NeuronLayer(int outputSize, int inputSize, VDerivable activation) {
-		this.weights = Matrix.randomGaussian(outputSize, inputSize, new Random());
-		this.bias = FloatVector.of(outputSize);
+	NeuronLayer(int outputSize, int inputSize, VDerivable activation, TYPE type) {
+		this.weights = Matrix.randomGaussian(outputSize, inputSize, type, new Random());
+		this.bias = Vector.of(type, outputSize);
 		this.activation = activation;
 	}
 	
@@ -79,16 +80,16 @@ class NeuronLayer implements Serializable {
 	}
 
 	/**
-	 * Do a forward : {@link #aggregation(FloatVector)} then {@link #activation(FloatVector)}.
+	 * Do a forward : {@link #aggregation(Vector)} then {@link #activation(Vector)}.
 	 * @param data the input vector
 	 * @return the output from the forward on the current layer
 	 */
-	FloatVector forward(FloatVector data) {
+	Vector forward(Vector data) {
 		return this.activation(this.aggregation(data));
 	}
 
 	/**
-	 * Do a {@link #forward(FloatVector)} but keep a reference to both aggregation and activation outputs.
+	 * Do a {@link #forward(Vector)} but keep a reference to both aggregation and activation outputs.
 	 * @param previous the previous layer output {@link LayerOutput#activation} is used as forward input)
 	 * @return the output from the forward on the current layer
 	 */
@@ -104,7 +105,7 @@ class NeuronLayer implements Serializable {
 	 * @param data the input vector
 	 * @return the output vector
 	 */
-	private FloatVector aggregation(FloatVector data) {
+	private Vector aggregation(Vector data) {
 		return this.weights.apply(data).sum(this.bias);
 	}
 
@@ -113,7 +114,7 @@ class NeuronLayer implements Serializable {
 	 * @param data the input vector
 	 * @return the output vector
 	 */
-	private FloatVector activation(FloatVector data) {
+	private Vector activation(Vector data) {
 		return this.activation.apply(data);
 	}
 
@@ -122,7 +123,7 @@ class NeuronLayer implements Serializable {
 	 * @param data the input vector
 	 * @return the output vector
 	 */
-	FloatVector activationPrime(FloatVector data) {
+	Vector activationPrime(Vector data) {
 		return this.activation.derive().apply(data);
 	}
 
@@ -158,7 +159,7 @@ class NeuronLayer implements Serializable {
 	 * @param gradient     the error gradient vector
 	 * @param learningRate the learning rate
 	 */
-	private void updateBiases(FloatVector gradient, float learningRate) {
+	private void updateBiases(Vector gradient, float learningRate) {
 		this.bias.sum(gradient.mult(learningRate * -1f));
 	}
 
@@ -166,12 +167,12 @@ class NeuronLayer implements Serializable {
 	 * Stores the aggregation and activation output values after a forward.
 	 */
 	static class LayerOutput {
-		FloatVector aggregations;
-		FloatVector activation;
+		Vector aggregations;
+		Vector activation;
 
 		private LayerOutput() {}
 		
-		static LayerOutput activation(FloatVector activation) {
+		static LayerOutput activation(Vector activation) {
 			LayerOutput output = new LayerOutput();
 			output.activation = activation;
 			return output;

@@ -1,15 +1,18 @@
 package com.github.ugdbg.perceptron;
 
 import com.github.ugdbg.data.MNIST;
+import com.github.ugdbg.datatypes.TYPE;
 import com.github.ugdbg.function.scalar.Sigmoid;
 import com.github.ugdbg.function.scalar.Tanh;
 import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.SoftMax;
+import com.github.ugdbg.test.categories.Slow;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,6 +128,23 @@ public class NeuronNetworkMNISTTest {
 		this.testNetwork(neuronNetwork, 0.6F);
 	}
 	
+	@Test
+	public void testNeuronNetworkTrainImages_SigmoidOutput_Double() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784, TYPE.PDOUBLE);
+		neuronNetwork.addLayer(200, new Sigmoid(1));
+		neuronNetwork.addLayer(10, new Sigmoid(1));
+		this.testNetwork(neuronNetwork, 0.8F);
+	}
+	
+	@Test
+	@Category(Slow.class)
+	public void testNeuronNetworkTrainImages_SigmoidOutput_BigDecimal() throws IOException, ClassNotFoundException {
+		NeuronNetwork neuronNetwork = new NeuronNetwork(784, TYPE.DECIMAL);
+		neuronNetwork.addLayer(200, new Sigmoid(1));
+		neuronNetwork.addLayer(10, new Sigmoid(1));
+		this.testNetwork(neuronNetwork, 0.8F);
+	}
+	
 	private void testNetwork(NeuronNetwork network, float expectedAccuracy) throws IOException, ClassNotFoundException {
 		int batchSize = 30;
 		
@@ -135,7 +155,7 @@ public class NeuronNetworkMNISTTest {
 			Assert.fail("Network [" + network + "] is incoherent !");
 		}
 		
-		List<NeuronNetwork.Input> inputs = this.mnistToInputs();
+		List<NeuronNetwork.Input> inputs = this.mnistToInputs(network.getVectorFormat());
 		List<List<NeuronNetwork.Input>> halves = Lists.partition(inputs, this.mnist.size() / 2);
 		List<NeuronNetwork.Input> testHalf  = halves.get(0);
 		List<NeuronNetwork.Input> trainHalf = halves.get(1);
@@ -193,11 +213,11 @@ public class NeuronNetworkMNISTTest {
 		return input.expected == neuronNetwork.predict(input.input) ? 1 : 0;
 	}
 	
-	private List<NeuronNetwork.Input> mnistToInputs() {
-		return this.mnist.getImages().stream().map(NeuronNetworkMNISTTest::imageToInput).collect(Collectors.toList());
+	private List<NeuronNetwork.Input> mnistToInputs(TYPE type) {
+		return this.mnist.getImages().stream().map(image -> imageToInput(image, type)).collect(Collectors.toList());
 	}
 	
-	private static NeuronNetwork.Input imageToInput(MNIST.Image image) {
-		return new NeuronNetwork.Input(image.singleVector().normalize(0f, 255f), image.getLabel());
+	private static NeuronNetwork.Input imageToInput(MNIST.Image image, TYPE type) {
+		return new NeuronNetwork.Input(image.singleVector(type).normalize(0f, 255f), image.getLabel());
 	}
 }

@@ -2,7 +2,7 @@ package com.github.ugdbg.function.vector.domain;
 
 import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.scalar.domain.Domains;
-import com.github.ugdbg.vector.IVector;
+import com.github.ugdbg.vector.Vector;
 import com.github.ugdbg.vector.format.Format;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.builder.CompareToBuilder;
@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
  * <br>
  * e.g. ℝⁿ
  */
-public class VDomain implements Domain<IVector> {
+public class VDomain implements Domain<Vector> {
 	
 	private Domain<Float>[] domains;
 
@@ -44,8 +44,8 @@ public class VDomain implements Domain<IVector> {
 			}
 
 			@Override
-			public boolean isIn(IVector x) {
-				return Arrays.stream(x.getValue()).allMatch(number -> domain.isIn(number.floatValue()));
+			public boolean isIn(Vector x) {
+				return Arrays.stream(x.getValue().asArray()).allMatch(number -> domain.isIn(number.floatValue()));
 			}
 
 			@Override
@@ -60,7 +60,7 @@ public class VDomain implements Domain<IVector> {
 	}
 
 	@Override
-	public boolean isIn(IVector x) {
+	public boolean isIn(Vector x) {
 		this.dimensionCheck(x);
 		return ! IntStream.range(0, this.domains.length)
 			.filter(value -> ! this.domains[value].isIn(x.at(value).floatValue()))
@@ -113,7 +113,7 @@ public class VDomain implements Domain<IVector> {
 		return "(" + Joiner.on(") X (").join(this.domains) + ")";
 	}
 
-	private void dimensionCheck(IVector input) {
+	private void dimensionCheck(Vector input) {
 		if (this.dimension() != input.dimension()) {
 			throw new RuntimeException(
 				"Vector [" + input.shortLabel() + "] does not match domain dimension [" + this.domains.length + "]"

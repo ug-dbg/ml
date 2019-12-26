@@ -1,12 +1,14 @@
 package com.github.ugdbg.function.scalar;
 
+import com.github.ugdbg.NumberUtils;
 import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.vector.VFunction;
-import com.github.ugdbg.vector.primitive.FloatVector;
+import com.github.ugdbg.vector.Vector;
 
 import java.io.Serializable;
+import java.math.MathContext;
 import java.util.Objects;
 
 /**
@@ -21,6 +23,19 @@ public interface Function extends Serializable {
 	 */
 	float doApply(float input);
 
+	/**
+	 * Apply the function on an input ℝ number.
+	 * <br>
+	 * Defaults to {@link #doApply(float)} using {@link Number#floatValue()}.
+	 * <br>
+	 * Override to provide a specific implementation
+	 * @param input the input value
+	 * @return the output value of the function
+	 */
+	default Number doApply(Number input) {
+		return this.doApply(input.floatValue());
+	}
+	
 	/**
 	 * Check the domain and apply the function on an input ℝ number.
 	 * @param input the input float value
@@ -83,7 +98,7 @@ public interface Function extends Serializable {
 	default VFunction vectorial() {
 		return new VFunction() {
 			@Override
-			public float[] doApply(float[] input) {
+			public Vector doApply(Vector input) {
 				return Function.this.apply(input);
 			}
 
@@ -112,7 +127,11 @@ public interface Function extends Serializable {
 	 * @param input the input vector
 	 * @return an output vector y(y₁,y₂,y₃...yₙ) where yᵢ = this(xᵢ)
 	 */
-	default FloatVector apply(FloatVector input) {
-		return FloatVector.of(this.apply(input.getPrimitiveValue()));
+	default Vector apply(Vector input) {
+		return Vector.of(input.getValue().getType(), this.apply(input.floats()));
+	}
+	
+	default MathContext mathContext() {
+		return NumberUtils.MATH_CONTEXT;
 	}
 }

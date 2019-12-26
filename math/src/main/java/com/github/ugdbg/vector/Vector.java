@@ -1,90 +1,152 @@
 package com.github.ugdbg.vector;
 
 import com.github.ugdbg.NumberUtils;
+import com.github.ugdbg.datatypes.TYPE;
+import com.github.ugdbg.datatypes.array.DecimalArray;
+import com.github.ugdbg.datatypes.array.NumericArray;
+import com.github.ugdbg.datatypes.array.PrimitiveDoubleArray;
+import com.github.ugdbg.datatypes.array.PrimitiveFloatArray;
 import com.github.ugdbg.vector.format.FloatFormat;
 import com.github.ugdbg.vector.format.Format;
 import com.google.common.base.Joiner;
 
 import java.io.Serializable;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * A generic vector implementation.
+ * A vector implementation based on a {@link NumericArray}.
  * <br>
- * This implementation is not suitable for primitives and relies a lot on auto-boxing : performance is not that good.
- * @param <T> the number implementation for the vector components
+ * The numeric data store implementation is delegated to {@link #value}.
  */
-public class Vector<T extends Number & Comparable<T>> implements IVector<Vector<T>>, Serializable {
+public class Vector implements Serializable {
 	
-	protected final T[] value;
-	protected final Class<T> type;
+	protected final NumericArray value;
 	protected Format format = new FloatFormat(5, 5);
 
-	/**
-	 * Constructor from explicit array value.
-	 * @param value the vector components
-	 */
-	@SuppressWarnings("unchecked")
-	public Vector(T[] value) {
-		this.value = Arrays.copyOf(value, value.length);
-		this.type = (Class<T>) value.getClass().getComponentType();
+	private Vector(NumericArray value) {
+		this.value = value;
+	}
+	
+	public Vector withFormat(Format format) {
+		this.format = format;
+		return this;
+	}
+	
+	public NumericArray getValue() {
+		return this.value;
+	}
+	
+	public float[] floats() {
+		return this.value.floats();
+	}
+	
+	public double[] doubles() {
+		return this.value.doubles();
+	}
+		
+	public BigDecimal[] decimals() {
+		return this.value.decimals();
+	}
+	
+	public int dimension() {
+		return this.value.length();
+	}
+	
+	public Number at(int i) {
+		return this.value.at(i);
+	}
+	
+	public void at(int i, Number value) {
+		this.value.at(i, value);
 	}
 
+	public void zero(int i) {
+		this.at(i, 0);
+	}
+	
+	public static Vector of(NumericArray value) {
+		return new Vector(value);
+	}
+	
 	/**
 	 * Constructor from explicit array values.
 	 * @param values the vector components
 	 */
-	@SafeVarargs
-	protected static <T extends Number & Comparable<T>> Vector of(T... values) {
-		return new Vector<>(values);
+	public static Vector of(TYPE type, float... values) {
+		if (type == TYPE.PFLOAT) {
+			return new Vector(new PrimitiveFloatArray(values));
+		}
+		
+		Vector out = Vector.of(type, values.length);
+		out.getValue().operation((array, index) -> array.at(index, values[index]));
+		return out;
 	}
-
+	
+	/**
+	 * Constructor from explicit array values.
+	 * @param values the vector components
+	 */
+	public static Vector of(float... values) {
+		return new Vector(new PrimitiveFloatArray(values));
+	}
+	
+	/**
+	 * Constructor from explicit array values.
+	 * @param values the vector components
+	 */
+	public static Vector of(double... values) {
+		return new Vector(new PrimitiveDoubleArray(values));
+	}
+	
+	/**
+	 * Constructor from explicit array values.
+	 * @param values the vector components
+	 */
+	public static Vector of(BigDecimal... values) {
+		return new Vector(new DecimalArray(values));
+	}
+	
 	/**
 	 * Create a new vector instance of a given Number type with the given dimension.
 	 * every component of the vector will be set to 0.
 	 * @param type      the components Number implementation
 	 * @param dimension the vector dimension
-	 * @param <T> the component type
 	 * @return a new vector instance
 	 */
-	@SuppressWarnings("unchecked")
-	public static <T extends Number & Comparable<T>> Vector<T> of(Class<T> type, int dimension) {
-		return new Vector<>((T[]) Array.newInstance(type, dimension)).operation(Vector::zero);
+	public static Vector of(TYPE type, int dimension) {
+		return new Vector(type.array(dimension).zero());
 	}
 
 	/**
-	 * Copy a vector.
-	 * @param source the source vector
-	 * @param <T> the component type
-	 * @param <V> the vector implementation. It should have a public constructor with explicit value array parameter. 
-	 * @return a copy of the source vector
+	 * Copy current vector. Array implementation is preserved.
+	 * @return a copy of the current vector
 	 */
-	@SuppressWarnings("unchecked")
-	public static <T extends Number & Comparable<T>, V extends Vector<T>> V copy(V source) {
-		for (Constructor<?> constructor : source.getClass().getDeclaredConstructors()) {
-			try {
-				return (V) constructor.newInstance((Object) source.value);
-			} catch (ReflectiveOperationException ignored) {}
-		}
-		throw new RuntimeException("Could not instantiate [" + source.getClass() + "]");
+	public Vector copy() {
+		return new Vector(this.value.copy());
 	}
 
+	/**
+	 * The vector index with the highest value.
+	 * @return {@link NumericArray#topIndex()} for {@link #value}
+	 */
+	public int topIndex() {
+		return this.value.topIndex();
+	}
+	
 	/**
 	 * Create a one-hot vector, i.e. a vector whose components are all set to '0' but one index which is set to '1'.
-	 * @param type   the components Number implementation
+	 * @param type   the numeric array implementation
 	 * @param index  the index of the component that should be set to 1
 	 * @param length the vector dimension
-	 * @param <T> the components Number type
 	 * @return a new one-hot vector instance
 	 */
-	public static <T extends Number & Comparable<T>> Vector<T> oneHot(Class<T> type, int index, int length) {
-		Vector<T> oneHot = Vector.of(type, length);
-		oneHot.value[index] = NumberUtils.one(type);
+	public static Vector oneHot(TYPE type, int index, int length) {
+		Vector oneHot = Vector.of(type, length);
+		oneHot.value.oneHot(index);
 		return oneHot;
 	}
 
@@ -92,99 +154,118 @@ public class Vector<T extends Number & Comparable<T>> implements IVector<Vector<
 	 * Sum two vectors into a new one. Dimensions should be compatible !
 	 * @param a the left operand
 	 * @param b the right operand
-	 * @param <T> the components Number type
 	 * @return a new vector instance that is the sum of a and b
 	 */
-	public static <T extends Number & Comparable<T>> Vector<T> sum(Vector<T> a, Vector<T> b) {
-		return copy(a).sum(b);
+	public static Vector sum(Vector a, Vector b) {
+		return a.copy().sum(b);
 	}
 
 	/**
 	 * Subtract two vectors into a new one. Dimensions should be compatible !
 	 * @param a the left operand
 	 * @param b the right operand
-	 * @param <T> the components Number type
 	 * @return a new vector instance that is a - b
 	 */
-	public static <T extends Number & Comparable<T>> Vector<T> sub(Vector<T> a, Vector<T> b) {
-		return copy(a).sub(b);
+	public static Vector sub(Vector a, Vector b) {
+		return a.copy().sub(b);
 	}
 
-	@Override
-	public Vector<T> format(Format format) {
-		this.format = format;
-		return this;
+	/**
+	 * Add the given vector value to the current instance
+	 * @param other the vector to add to the current vector
+	 * @return the current vector instance instance
+	 */
+	public Vector sum(Vector other) {
+		Vector output = this.copy();
+		output.value.sum(other.value);
+		return output;
 	}
 
-	@Override
-	public T[] getValue() {
-		return this.value;
+	/**
+	 * Subtract the given vector value to the current instance
+	 * @param other the vector to subtract to the current vector
+	 * @return the current vector instance instance
+	 */
+	public Vector sub(Vector other) {
+		Vector output = this.copy();
+		output.value.sub(other.value);
+		return output;
+	}
+	
+	/**
+	 * Multiply the given vector value to the current instance
+	 * @param other the vector to multiply to the current vector with
+	 * @return the current vector instance instance
+	 */
+	public Vector mult(Vector other) {
+		Vector output = this.copy();
+		output.value.mul(other.value);
+		return output;
 	}
 
-	@Override
-	public int dimension() {
-		return this.value.length;
+	/**
+	 * Divide the given vector value to the current instance
+	 * @param other the vector to divide to the current vector with
+	 * @return the current vector instance instance
+	 */
+	public Vector div(Vector other) {
+		Vector output = this.copy();
+		output.value.div(other.value);
+		return output;
 	}
 	
-	@Override
-	public T at(int i) {
-		return this.value[i];
-	}
-	
-	@Override
-	public void at(int i, Number value) {
-		this.value[i] = NumberUtils.convertNumberToTargetClass(value, this.type);
+	/**
+	 * Multiply the current vector instance with a scalar
+	 * @param scalar the scalar factor
+	 * @return the current vector instance
+	 */
+	public Vector mult(float scalar) {
+		Vector output = this.copy();
+		output.value.mul(scalar);
+		return output;
 	}
 
-	public void zero(int i) {
-		this.value[i] = NumberUtils.zero(this.type);
+	/**
+	 * Sum all the current instance values.
+	 * @return the sum of the current vector values
+	 */
+	public Number sum() {
+		return this.value.sum();
 	}
 	
-	@Override
-	public Vector<T> sum(Vector<T> other) {
-		return this.operation((vector, i) -> vector.at(i, vector.add(vector.at(i), other.at(i))));
-	}
-	
-	@Override
-	public Vector<T> sub(Vector<T> other) {
-		return this.operation((vector, i) -> vector.at(i, vector.sub(vector.at(i), other.at(i))));
-	}
-	
-	public Vector<T> mult(float scalar) {
-		return this.operation((vector, i) -> vector.at(i, vector.mult(vector.at(i), scalar)));
-	}
-	
-	@Override
-	public Vector<T> mult(Vector<T> other) {
-		return this.operation((vector, i) -> this.at(i, vector.mult(vector.at(i), other.at(i))));
-	}
-	
-	@Override
-	public Vector<T> div(Vector<T> other) {
-		return this.operation((vector, i) -> this.at(i, vector.div(vector.at(i), other.at(i))));
-	}
-	
-	@Override
-	public T sum() {
-		return NumberUtils.sum(this.type, Arrays.asList(this.value));
-	}
-	
-	@Override
-	public T avg(boolean abs) {
-		return NumberUtils.avg(this.type, Arrays.asList(this.value), abs);
-	}
-	
-	@Override
-	public T max(boolean abs) {
-		Function<T, T> mapper = abs ? NumberUtils::abs : Function.identity();
-		return Arrays.stream(this.value).map(mapper).max(Comparator.naturalOrder()).orElse(NumberUtils.zero(this.type));
+	/**
+	 * Compute the current instance average value.
+	 * @param abs true to use absolute values
+	 * @return the average value of the current vector values
+	 */
+	@SuppressWarnings("unchecked")
+	public Number avg(boolean abs) {
+		return NumberUtils.avg(this.value.getType().targetClass(), this.value.asList(), abs);
 	}
 
-	@Override
-	public Vector<T> normalize(float min, float max) {
+	/**
+	 * Find the max value of the current instance
+	 * @param abs true to use absolute values
+	 * @return the max value of the current vector values
+	 */
+	@SuppressWarnings("unchecked")
+	public Number max(boolean abs) {
+		Function<Number, Number> mapper = abs ? NumberUtils::abs : Function.identity();
+		return (Number) this.value.asList().stream().map(mapper).max((Comparator) Comparator.naturalOrder()).orElse(0);
+	}
+
+	/**
+	 * Normalize every component of this vector (cross multiplication) into the [0, 1] segment.
+	 * e.g. (75, 0, 100) → 0.75  
+	 * @param min    the number min bound inclusive
+	 * @param max    the number max bound inclusive
+	 * @return the current vector instance normalized to the [0, 1] segment.
+	 */
+	@SuppressWarnings("unchecked")
+	public Vector normalize(float min, float max) {
 		return this.normalize(
-			NumberUtils.convertNumberToTargetClass(min, this.type), 
-			NumberUtils.convertNumberToTargetClass(max, this.type)
+			NumberUtils.convertNumberToTargetClass(min, this.value.getType().targetClass()), 
+			NumberUtils.convertNumberToTargetClass(max, this.value.getType().targetClass())
 		);
 	}
 	
@@ -195,13 +276,18 @@ public class Vector<T extends Number & Comparable<T>> implements IVector<Vector<
 	 * @param max    the number max bound inclusive
 	 * @return the current vector instance normalized to the [0, 1] segment.
 	 */
-	public Vector<T> normalize(T min, T max) {
-		return this.operation((vector, i) -> this.at(i, NumberUtils.normalize(this.at(i), min, max)));
+	public Vector normalize(Number min, Number max) {
+		this.value.normalize(min, max);
+		return this;
 	}
 	
 	@Override
 	public String toString() {
-		return "[" + this.format(this.value) + "]";
+		return "[" + this.format(this.value.asArray()) + "]";
+	}
+	
+	public String shortLabel() {
+		return "V(" + this.value.getType().name() + ", " + this.dimension() + ")";
 	}
 	
 	protected String format(Number[] vector) {
@@ -210,33 +296,5 @@ public class Vector<T extends Number & Comparable<T>> implements IVector<Vector<
 	
 	protected String format(Number value) {
 		return this.format.format(value);
-	}
-	
-	protected T zero() {
-		return NumberUtils.zero(this.type);
-	}
-	
-	protected T one() {
-		return NumberUtils.one(this.type);
-	}
-	
-	protected T add(T a, T b) {
-		return NumberUtils.add(a, b);
-	}
-	
-	protected T sub(T a, T b) {
-		return NumberUtils.sub(a, b);
-	}
-	
-	protected T mult(T a, T b) {
-		return NumberUtils.mult(a, b);
-	}
-	
-	protected T mult(T a, float scalar) {
-		return NumberUtils.mult(a, scalar);
-	}
-	
-	protected T div(T a, T b) {
-		return NumberUtils.div(a, b);
 	}
 }

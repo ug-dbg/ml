@@ -1,11 +1,12 @@
 package com.github.ugdbg.vector.format;
 
+import java.io.Serializable;
 import java.util.stream.Collectors;
 
 /**
  * An interface to manager number formatting with a fixed length.
  */
-public interface Format {
+public interface Format extends Serializable {
 
 	/**
 	 * The output length of the formatter

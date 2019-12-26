@@ -1,9 +1,10 @@
 package com.github.ugdbg.perceptron;
 
+import com.github.ugdbg.datatypes.TYPE;
 import com.github.ugdbg.function.scalar.Derivable;
 import com.github.ugdbg.function.vector.Matrix;
 import com.github.ugdbg.function.vector.VDerivable;
-import com.github.ugdbg.vector.primitive.FloatVector;
+import com.github.ugdbg.vector.Vector;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,7 @@ import java.util.stream.IntStream;
  * <br>
  * It supports :
  * <ul>
- *     <li>prediction : {@link #predict(FloatVector)}</li>
+ *     <li>prediction : {@link #predict(Vector)}</li>
  *     <li>back propagation : {@link #backProp(Input)}</li>
  *     <li>training using batching of inputs : {@link #train(List, int, float, int, Executor)}</li>
  *     <li>parallel/sequential back-propagation for a batch</li>
@@ -38,12 +39,36 @@ public class NeuronNetwork implements Serializable {
 	private final int inputDim;
 	private List<NeuronLayer> layers = new ArrayList<>();
 
+	/** Vector and Matrix implementation : default to primitive floats. */
+	private transient final TYPE type;
+	
 	/**
 	 * New neuron network. No layer.
+	 * Default vector number format is primitive float ({@link com.github.ugdbg.datatypes.array.PrimitiveFloatArray}).
 	 * @param inputDim the input vector dimension
 	 */
 	public NeuronNetwork(int inputDim) {
 		this.inputDim = inputDim;
+		this.type = TYPE.PFLOAT;
+	}
+
+	/**
+	 * New neuron network, using the given number format. No layer.
+	 * @param inputDim     the input vector dimension
+	 * @param vectorFormat the vector number type class
+	 */
+	public <T extends Number & Comparable<T>> NeuronNetwork(int inputDim, TYPE vectorFormat) {
+		this.inputDim = inputDim;
+		this.type = vectorFormat;
+	}
+
+	/**
+	 * Get the vector builder of this network. 
+	 * This builder is responsible for the numeric choice of the vectors (float, Float, BigDecimal...).
+	 * @return {@link #type}
+	 */
+	public TYPE getVectorFormat() {
+		return this.type;
 	}
 
 	/**
@@ -101,15 +126,15 @@ public class NeuronNetwork implements Serializable {
 	public void addLayer(int layerSize, VDerivable activation) {
 		int outputSize = this.outputSize();
 		int layerInputSize = outputSize == -1 ? this.inputDim : outputSize;
-		this.layers.add(new NeuronLayer(layerSize, layerInputSize, activation));
+		this.layers.add(new NeuronLayer(layerSize, layerInputSize, activation, this.type));
 	}
 	
 	/**
-	 * Feed the given vector throught the whole network and return the output vector top index (i.e. prediction class)
+	 * Feed the given vector through the whole network and return the output vector top index (i.e. prediction class)
 	 * @param data the input vector
 	 * @return the network prediction for the input
 	 */
-	public int predict(FloatVector data) {
+	public int predict(Vector data) {
 		return this.feedForward(data).topIndex();
 	}
 	
@@ -118,8 +143,8 @@ public class NeuronNetwork implements Serializable {
 	 * @param data the input vector
 	 * @return the network prediction for the input
 	 */
-	private FloatVector feedForward(FloatVector data) {
-		FloatVector activation = data;
+	public Vector feedForward(Vector data) {
+		Vector activation = data;
 		for (NeuronLayer layer : this.layers) {
 			activation = layer.forward(activation);
 		}
@@ -152,10 +177,10 @@ public class NeuronNetwork implements Serializable {
 	 * </ul>
 	 * @param inputs       the input batch
 	 * @param learningRate the learning rate (updating the weights and bias in the layers)
-	 * @param executor     an executor for parralelism
+	 * @param executor     an executor for parallelism
 	 */
 	private void trainBatch(List<Input> inputs, float learningRate, Executor executor) {
-		Gradients gradients = Gradients.init(this.layers);
+		Gradients gradients = Gradients.init(this.layers, this.type);
 
 		List<Task> tasks = inputs
 			.stream()
@@ -178,6 +203,7 @@ public class NeuronNetwork implements Serializable {
 	 * @param input the input vector
 	 * @return the back-propagation output, as a collection of error gradient (weights and bias) (one per layer)
 	 */
+	
 	private Outputs backProp(Input input) {
 		try {
 			NeuronLayer.LayerOutput layerOutput = NeuronLayer.LayerOutput.activation(input.input);
@@ -190,18 +216,22 @@ public class NeuronNetwork implements Serializable {
 			}
 
 			// Get output δ and add it to the list of δs : this is a specific operation on the last layer.
-			// The δ variable will be used to compute the previous layer δ : it is dereferenced at each layer iteration. 
-			FloatVector target = FloatVector.oneHot(input.expected, this.outputSize());
-			FloatVector delta = this.getOutputDelta(layerOutput, target);
-			List<FloatVector> deltas = new ArrayList<>();
+			// The δ variable will be used to compute the previous layer δ : it is dereferenced at each layer iteration.
+			Vector target = Vector.oneHot(this.type, input.expected, this.outputSize());
+			Vector delta = this.getOutputDelta(layerOutput, target);
+			List<Vector> deltas = new ArrayList<>();
 			deltas.add(delta);
 
 			// The output δ for each layer is computed from the δ of the previous layer.
 			for (int i = this.layers.size() - 1; i >= 1; i--) {
 				NeuronLayer layer = this.layers.get(i);
 				NeuronLayer prev = this.layers.get(i - 1);
-				FloatVector activationPrime = prev.activationPrime(layerOutputs.get(i).aggregations);
-				delta = activationPrime.mult(layer.getWeights().transpose().apply(delta));
+				
+				Vector activationPrime = prev.activationPrime(layerOutputs.get(i).aggregations);
+
+				Vector applied = layer.getWeights().transpose().apply(delta);
+				delta = activationPrime.mult(applied);
+				
 				deltas.add(delta);
 			}
 
@@ -239,18 +269,18 @@ public class NeuronNetwork implements Serializable {
 	 * @param target the expected network output
 	 * @return the delta (δ) of the network for the given last layer output
 	 */
-	private FloatVector getOutputDelta(NeuronLayer.LayerOutput output, FloatVector target) {
-		return FloatVector.sub(output.activation, target);
+	private Vector getOutputDelta(NeuronLayer.LayerOutput output, Vector target) {
+		return output.activation.copy().sub(target);
 	}
 
 	/**
 	 * A network input is a vector and an expected class (which should match the output vector top index)
 	 */
 	public static class Input {
-		FloatVector input;
+		Vector input;
 		int expected;
 	
-		public Input(FloatVector input, int expected) {
+		public Input(Vector input, int expected) {
 			this.input = input;
 			this.expected = expected;
 		}
@@ -275,7 +305,7 @@ public class NeuronNetwork implements Serializable {
 	 * <br>
 	 * Default implementations for {@link #sequential()} and {@link #parallel(int)}.
 	 */
-	interface Executor {
+	public interface Executor {
 		void invokeAll(List<Task> tasks) throws InterruptedException;
 		
 		/** Sequential execution in the current thread of all the tasks. */
@@ -301,7 +331,7 @@ public class NeuronNetwork implements Serializable {
 	public static class Task implements Callable<Void> {
 		private Runnable function;
 		
-		static Task of(Runnable function){
+		public static Task of(Runnable function){
 			Task task = new Task();
 			task.function = function;
 			return task;

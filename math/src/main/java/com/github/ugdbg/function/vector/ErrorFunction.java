@@ -1,25 +1,32 @@
 package com.github.ugdbg.function.vector;
 
-import org.apache.commons.lang3.ArrayUtils;
+import com.github.ugdbg.vector.Vector;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
 
 public interface ErrorFunction extends VDerivable {
 	
-	float[] expected();
+	Vector expected();
 	
-	default float normalizedError(float[] output) {
-		float[] error = this.apply(output);
+	default Number normalizedError(Vector output) {
+		Vector error = this.apply(output);
 		float length = this.length(output);
-		return (-1 / length) * (float) Arrays.stream(ArrayUtils.toObject(error)).mapToDouble(f -> (double) f).sum();
+		Number sum = error.sum();
+		if (sum instanceof BigDecimal) {
+			return ((BigDecimal) sum).multiply(BigDecimal.valueOf((-1 / length)));
+		} else if (sum instanceof Float) {
+			return (-1 / length) * sum.floatValue();
+		} else {
+			return (-1 / length) * sum.doubleValue();
+		}
 	}
 	
-	default int length(float[] output) {
-		if (this.expected().length != output.length) {
+	default int length(Vector output) {
+		if (this.expected().dimension() != output.dimension()) {
 			throw new IllegalArgumentException(
-				"Bad vector size [" + this.expected().length + "] VS [" + output.length + "]"
+				"Bad vector size [" + this.expected().dimension() + "] VS [" + output.dimension() + "]"
 			);
 		}
-		return this.expected().length;
+		return this.expected().dimension();
 	}
 }

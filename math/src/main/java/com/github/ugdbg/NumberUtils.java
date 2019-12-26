@@ -1,9 +1,11 @@
 package com.github.ugdbg;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ClassUtils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,9 +21,16 @@ import java.util.function.Function;
  */
 public abstract class NumberUtils {
 
+	public static final BigDecimal E;
+	public static final MathContext MATH_CONTEXT = new MathContext(10000, RoundingMode.HALF_UP);
+	
 	private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
 	private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 
+	static {
+		E = computeE(MATH_CONTEXT);
+	}
+	
 	/** 'integer' types */
 	private static final List<Class> INTEGERS = Arrays.asList(
 		byte.class, 
@@ -41,6 +50,23 @@ public abstract class NumberUtils {
 		double.class, 
 		Double.class 
 	);
+
+	/**
+	 * Compute 'e' using the Taylor series of the Exponential function for x = 1. 
+	 * @param context the Math context to use (BigDecimal division)
+	 * @return the BigDecimal value for 'e' using the given context
+	 */
+	public static BigDecimal computeE(MathContext context) {
+		BigDecimal e = BigDecimal.ONE;
+		BigDecimal fact = BigDecimal.ONE;
+		
+		for(int i = 1; i < 100; i++) {
+			fact = fact.multiply(new BigDecimal(i));
+			e = e.add(BigDecimal.ONE.divide(fact, context));
+		}
+		
+		return e;
+	}
 	
 	/**
 	 * Convert the given number into an instance of the given target class.
@@ -66,31 +92,33 @@ public abstract class NumberUtils {
 		Number number, 
 		Class<T> targetClass)
 		throws IllegalArgumentException {
-	
-		if (targetClass.isInstance(number)) {
+
+		Class<? extends Number> wrapped = (Class) ClassUtils.primitiveToWrapper(targetClass);
+
+		if (wrapped.isInstance(number)) {
 			return (T) number;
-		} else if (Byte.class == targetClass) {
-			long value = checkedLongValue(number, targetClass);
+		} else if (Byte.class == wrapped) {
+			long value = checkedLongValue(number, wrapped);
 			if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-				raiseOverflowException(number, targetClass);
+				raiseOverflowException(number, wrapped);
 			}
 			return (T) Byte.valueOf(number.byteValue());
-		} else if (Short.class == targetClass) {
-			long value = checkedLongValue(number, targetClass);
+		} else if (Short.class == wrapped) {
+			long value = checkedLongValue(number, wrapped);
 			if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-				raiseOverflowException(number, targetClass);
+				raiseOverflowException(number, wrapped);
 			}
 			return (T) Short.valueOf(number.shortValue());
-		} else if (Integer.class == targetClass) {
-			long value = checkedLongValue(number, targetClass);
+		} else if (Integer.class == wrapped) {
+			long value = checkedLongValue(number, wrapped);
 			if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-				raiseOverflowException(number, targetClass);
+				raiseOverflowException(number, wrapped);
 			}
 			return (T) Integer.valueOf(number.intValue());
-		} else if (Long.class == targetClass) {
-			long value = checkedLongValue(number, targetClass);
+		} else if (Long.class == wrapped) {
+			long value = checkedLongValue(number, wrapped);
 			return (T) Long.valueOf(value);
-		} else if (BigInteger.class == targetClass) {
+		} else if (BigInteger.class == wrapped) {
 			if (number instanceof BigDecimal) {
 				// do not lose precision - use BigDecimal's own conversion
 				return (T) ((BigDecimal) number).toBigInteger();
@@ -98,11 +126,11 @@ public abstract class NumberUtils {
 				// original value is not a Big* number - use standard long conversion
 				return (T) BigInteger.valueOf(number.longValue());
 			}
-		} else if (Float.class == targetClass) {
+		} else if (Float.class == wrapped) {
 			return (T) Float.valueOf(number.floatValue());
-		} else if (Double.class == targetClass) {
+		} else if (Double.class == wrapped) {
 			return (T) Double.valueOf(number.doubleValue());
-		} else if (BigDecimal.class == targetClass) {
+		} else if (BigDecimal.class == wrapped) {
 			// always use BigDecimal(String) here to avoid unpredictability of BigDecimal(double)
 			// (see BigDecimal javadoc for details)
 			return (T) new BigDecimal(number.toString());
@@ -283,7 +311,7 @@ public abstract class NumberUtils {
 			return (T) ((BigInteger) a).divide((BigInteger) b);
 		}
 		if (a instanceof BigDecimal) {
-			return (T) ((BigDecimal) a).divide((BigDecimal) b, RoundingMode.UNNECESSARY);
+			return (T) ((BigDecimal) a).divide((BigDecimal) b, RoundingMode.HALF_DOWN);
 		}
 		throw new IllegalArgumentException("Unknown Number type [" + a.getClass() + "]");
 	}

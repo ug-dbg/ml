@@ -2,6 +2,7 @@ package com.github.ugdbg.function.scalar;
 
 import com.github.ugdbg.function.vector.VDerivable;
 import com.github.ugdbg.function.vector.VFunction;
+import com.github.ugdbg.vector.Vector;
 
 /**
  * An interface for ℝ functions that can be derived.
@@ -30,7 +31,7 @@ public interface Derivable extends Function {
 			}
 
 			@Override
-			public float[] doApply(float[] input) {
+			public Vector doApply(Vector input) {
 				return Derivable.this.apply(input);
 			}
 		};

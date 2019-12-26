@@ -1,5 +1,8 @@
 package com.github.ugdbg.perceptron;
 
+import com.github.ugdbg.datatypes.TYPE;
+import com.github.ugdbg.vector.Vector;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,9 +18,9 @@ class Gradients extends ArrayList<Gradient> {
 	 * @param layers the network layers
 	 * @return a new Gradients list
 	 */
-	static Gradients init(List<NeuronLayer> layers) {
+	static Gradients init(List<NeuronLayer> layers, TYPE type) {
 		Gradients gradients = new Gradients();
-		layers.forEach(l -> gradients.add(new Gradient(l.inputSize(), l.outputSize())));
+		layers.forEach(l -> gradients.add(new Gradient(l.inputSize(), l.outputSize(), type)));
 		return gradients;
 	}
 

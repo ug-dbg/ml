@@ -1,10 +1,10 @@
 package com.github.ugdbg.data;
 
-import com.github.ugdbg.vector.primitive.FloatVector;
+import com.github.ugdbg.datatypes.TYPE;
+import com.github.ugdbg.vector.Vector;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -315,7 +315,8 @@ public class MNIST {
 	 */
 	public static class Image {
 		private static final int IMAGE_FILE_MAGIC_NUMBER = 2051;
-		private int[][] image;
+		private final int[][] image;
+		private final int size;
 		private int label = -1;
 
 		/**
@@ -329,6 +330,7 @@ public class MNIST {
 			for (int row = 0; row < numRows; row++) {
 				this.image[row] = new Row(numCols, bb).row;
 			}
+			this.size = numRows * numCols;
 		}
 
 		/**
@@ -337,6 +339,14 @@ public class MNIST {
 		 */
 		public int getLabel() {
 			return this.label;
+		}
+
+		/**
+		 * What is the size of the image, i.e. the number of pixel values.
+		 * @return {@link #size}
+		 */
+		public int getSize() {
+			return this.size;
 		}
 
 		/**
@@ -352,14 +362,16 @@ public class MNIST {
 		 * Get the image data as a single vector.
 		 * @return a new Vector with the inlined {@link #image} data matrix.
 		 */
-		public FloatVector singleVector() {
-			List<Float> out = new ArrayList<>();
+		public Vector singleVector(TYPE type) {
+			Vector vector = Vector.of(type, this.size);
+			int index = 0;
 			for (int[] row : this.image) {
 				for (int value : row) {
-					out.add((float) value);
+					vector.at(index, value);
+					index++;
 				}
 			}
-			return FloatVector.of(ArrayUtils.toPrimitive(out.toArray(new Float[0])));
+			return vector;
 		}
 		
 		public List<String> label() {

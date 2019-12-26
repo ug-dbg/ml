@@ -3,9 +3,10 @@ package com.github.ugdbg.function.vector;
 import com.github.ugdbg.function.domain.DomainCheckException;
 import com.github.ugdbg.function.vector.domain.VDomain;
 import com.github.ugdbg.function.vector.domain.VDomains;
-import com.github.ugdbg.vector.primitive.FloatVector;
+import com.github.ugdbg.vector.Vector;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
@@ -20,16 +21,17 @@ public interface VFunction extends Serializable {
 	 * @param input the input vector
 	 * @return the output
 	 */
-	float[] doApply(float[] input);
+	Vector doApply(Vector input);
 	
-	default float[] apply(float[] input) {
-		FloatVector inputVector = FloatVector.of(input);
-		if (this.domainCheck() && this.domain() != null && ! this.domain().isIn(inputVector)) {
-			throw new DomainCheckException(this, inputVector);
+	default Vector apply(Vector input) {
+		if (this.domainCheck() && this.domain() != null) {
+			if (! this.domain().isIn(input)) {
+				throw new DomainCheckException(this, input);
+			}
 		}
 		return this.doApply(input);
 	}
-
+	
 	/**
 	 * What is the domain of this function ? 
 	 * Default to {@link VDomains#R_ANY}.
@@ -43,21 +45,10 @@ public interface VFunction extends Serializable {
 	 * Should the domain be checked ? 
 	 * <br>
 	 * Default to false;
-	 * @return true if the domain must be checked before every {@link #doApply(float[])} call.
+	 * @return true if the domain must be checked before every {@link #doApply(Vector)} call.
 	 */
 	default boolean domainCheck() {
 		return false;
-	}
-	
-	/**
-	 * Apply the function to an input vector.
-	 * <br>
-	 * Convenience method to {@link #apply(float[])}.
-	 * @param input the input vector
-	 * @return the output
-	 */
-	default FloatVector apply(FloatVector input) {
-		return FloatVector.of(this.apply(input.getPrimitiveValue()));
 	}
 	
 	/**

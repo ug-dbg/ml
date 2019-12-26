@@ -1,5 +1,7 @@
 package com.github.ugdbg.function.vector;
 
+import com.github.ugdbg.vector.Vector;
+
 import java.util.Arrays;
 
 /**
@@ -7,7 +9,7 @@ import java.util.Arrays;
  */
 public class Identity extends DomainCheckedFunction<Identity> {
 	@Override
-	public float[] doApply(float[] input) {
-		return Arrays.copyOf(input, input.length);
+	public Vector doApply(Vector input) {
+		return input.copy();
 	}
 }

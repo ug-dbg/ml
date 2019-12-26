@@ -1,5 +1,11 @@
 package com.github.ugdbg.function.vector;
 
+import com.github.ugdbg.vector.Vector;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.stream.IntStream;
+
 /**
  * ce:x(x₁,x₂,x₃...xₙ) → y(y₁,y₂,y₃...yₙ)
  * <br>
@@ -11,37 +17,76 @@ package com.github.ugdbg.function.vector;
  */
 public class CrossEntropy extends DomainCheckedFunction<CrossEntropy> implements ErrorFunction {
 	
-	private final float[] expected;
+	private final Vector expected;
 
-	public CrossEntropy(float[] expected) {
+	public CrossEntropy(Vector expected) {
 		this.expected = expected;
 	}
 
 	@Override
-	public float[] expected() {
+	public Vector expected() {
 		return this.expected;
 	}
 
 	@Override
-	public float[] doApply(float[] output) {
-		float[] error = new float[output.length];
-		for (int i = 0; i < output.length; i++) {
-			error[i] = this.calculate(i, output[i]);
+	public Vector doApply(Vector output) {
+		Vector error = Vector.of(output.getValue().getType(), output.dimension());
+
+		IntStream stream = output.getValue().indexStream();
+		switch (error.getValue().getType()) {
+			case DECIMAL:
+				stream.forEach(i -> error.at(i, this.calculate(
+					this.expected.getValue().decimals()[i], 
+					output.getValue().decimals()[i])
+				));
+				break;
+			case PFLOAT:
+				stream.forEach(i -> error.at(i, this.calculate(
+					this.expected.getValue().floats()[i], 
+					output.getValue().floats()[i])
+				));
+				break;
+			case PDOUBLE:
+				stream.forEach(i -> error.at(i, this.calculate(
+					this.expected.getValue().doubles()[i], 
+					output.getValue().doubles()[i])
+				));
+				break;
 		}
 		return error;
 	}
 	
-	protected float calculate(int i, float value) {
-		return (float) (-1f * (this.expected[i] * Math.log(value) + (1 - this.expected[i]) * Math.log(1 - value)));
+	protected double calculate(double expected, double value) {
+		return (float) (-1f * (expected * Math.log(value) + (1 - expected) * Math.log(1 - value)));
+	}
+	
+	protected BigDecimal calculate(BigDecimal expected, BigDecimal value) {
+		BigDecimal oneMinusExpected = BigDecimal.ONE.subtract(expected);
+		BigDecimal oneMinusValue    = BigDecimal.ONE.subtract(value);
+		BigDecimal logValue = BigDecimal.valueOf(Math.log(value.doubleValue()));
+		BigDecimal logOneMinusValue = BigDecimal.valueOf(Math.log(oneMinusValue.doubleValue()));
+		
+		return (expected.multiply(logValue).add(oneMinusExpected.multiply(logOneMinusValue))).multiply(BigDecimal.valueOf(-1));
 	}
 
 	@Override
 	public ErrorFunction derive() {
 		return new CrossEntropy(CrossEntropy.this.expected()) {
 			@Override
-			protected float calculate(int i, float value) {
-				float expected = this.expected()[i];
+			protected double calculate(double expected, double value) {
 				return -1 * (expected / value) + (1 - expected) / (1 - value);
+			}
+			
+			@Override
+			protected BigDecimal calculate(BigDecimal expected, BigDecimal value) {
+				RoundingMode halfDown = RoundingMode.HALF_DOWN;
+				BigDecimal expectedValueRatio = expected.divide(value, halfDown);
+				BigDecimal oneMinusExpected = BigDecimal.ONE.subtract(expected);
+				BigDecimal oneMinusValue    = BigDecimal.ONE.subtract(value);
+				return oneMinusExpected
+					.divide(oneMinusValue, halfDown)
+					.add(expectedValueRatio)
+					.multiply(BigDecimal.valueOf(-1));
 			}
 		};
 	}

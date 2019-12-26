@@ -1,16 +1,23 @@
 package com.github.ugdbg.function.vector;
 
-import com.github.ugdbg.function.domain.Domain;
+import com.github.ugdbg.NumberUtils;
+import com.github.ugdbg.datatypes.TYPE;
+import com.github.ugdbg.datatypes.array.NumericArray;
+import com.github.ugdbg.datatypes.matrix.NumericMatrix;
 import com.github.ugdbg.function.vector.domain.VDomain;
 import com.github.ugdbg.function.vector.domain.VDomains;
+import com.github.ugdbg.vector.Vector;
 import com.github.ugdbg.vector.format.FloatFormat;
 import com.github.ugdbg.vector.format.Format;
-import com.github.ugdbg.vector.primitive.FloatVector;
 import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.util.*;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 /**
@@ -32,10 +39,14 @@ import java.util.stream.Collectors;
  * │0,60 0,30 0,90│
  * └              ┘
  * </pre>
+ * <b>
+ *     The numeric type of data stored in the matrix is delegated to {@link #weights}.
+ *     See {@link NumericMatrix} and its implementations.
+ * </b>
  */
 public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	
-	private final float[][] weights;
+	private final NumericMatrix weights;
 	private transient Format format = new FloatFormat(3, 2);
 
 	/**
@@ -43,36 +54,15 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @param m the matrix height (output dimension)
 	 * @param n the matrix width (input dimension)
 	 */
-	public Matrix(int m, int n) {
-		this.weights = new float[m][n];
+	public Matrix(int m, int n, TYPE type) {
+		this.weights = type.matrix(m, n);
 		this.domain = VDomains.R(this.getN());
 	}
 
-	/**
-	 * Explicit matrix creation from values.
-	 * @param weights the matrix weights
-	 * @throws IllegalArgumentException if the weights array is not square 
-	 */
-	public Matrix(float[][] weights) {
-		Set<Integer> widths = Arrays.stream(weights).map(floats -> floats.length).collect(Collectors.toSet());
-		if (widths.size() > 1) {
-			throw new IllegalArgumentException("input matrix weights are not square. Several widths : " + widths);
-		}
-		this.weights = weights;
-		this.domain = VDomains.R(this.getN());
+	private Matrix(NumericMatrix matrix) {
+		this.weights = matrix;
 	}
 
-	/**
-	 * Set the domain for any component of an input vector.
-	 * <br>
-	 * {@link #domain()} would then return a {@link VDomain#of(Domain, int)} )} for a {@link #getN()} dimension.
-	 * @param domain the domain do use.
-	 * @return the current Matrix instance
-	 */
-	public Matrix onDomain(Domain<Float> domain) {
-		return super.onDomain(VDomain.of(domain, this.getN()));
-	}
-	
 	@Override
 	public Matrix onDomain(VDomain domain) {
 		if (domain.dimension() != this.getN()) {
@@ -82,12 +72,19 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	}
 
 	@Override
-	public float[] doApply(float[] input) {
+	public Vector doApply(Vector input) {
 		int height = this.getM();
-		
-		float[] out = new float[height];
+
+		NumericArray value = input.getValue();
+		TYPE type = value.getType();
+		Vector out = Vector.of(type, height);
 		for (int i = 0; i < height; i++) {
-			out[i] = linearCombination(input, this.line(i).getPrimitiveValue());
+			switch (type) {
+				case PFLOAT:  out.floats()[i]   = value.linearCombinationToFloat(this.line(i).getValue());   break; 
+				case PDOUBLE: out.doubles()[i]  = value.linearCombinationToDouble(this.line(i).getValue());  break; 
+				case DECIMAL: out.decimals()[i] = value.linearCombinationToDecimal(this.line(i).getValue()); break;
+				default:      throw new IllegalArgumentException("Unsupported input type [" + type.name() + "]");
+			}
 		}
 		
 		return out;
@@ -108,7 +105,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @return the matrix height
 	 */
 	public int getM() {
-		return this.weights.length;
+		return this.weights.getM();
 	}
 
 	/**
@@ -116,7 +113,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @return the matrix width (actually the length of the array at line #1
 	 */
 	public int getN() {
-		return this.weights[0].length;
+		return this.weights.getN();
 	}
 
 	/**
@@ -126,8 +123,14 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @param random the random number generator
 	 * @return a new matrix instance
 	 */
-	public static Matrix randomGaussian(int m, int n, Random random) {
-		return new Matrix(m, n).operation((gaussian, i, j) ->  gaussian.at(i, j, (float) random.nextGaussian()));
+	public static Matrix randomGaussian(int m, int n, TYPE type, Random random) {
+		@SuppressWarnings("unchecked")
+		Class<? extends Number> target = type.targetClass();
+		
+		Matrix gaussian = new Matrix(m, n, type);
+		gaussian.weights.operation(
+			(matrix, i, j) -> matrix.at(i, j, NumberUtils.convertNumberToTargetClass(random.nextGaussian(), target)));
+		return gaussian;
 	}
 
 	/**
@@ -138,8 +141,16 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @param b vector b
 	 * @return a new Matrix instance.
 	 */
-	public static Matrix outer(FloatVector a, FloatVector b) {
-		return new Matrix(a.dimension(), b.dimension()).operation((outer, i, j) -> outer.at(i, j, a.at(i) * b.at(j)));
+	public static Matrix outer(Vector a, Vector b) {
+		TYPE type = a.getValue().getType();
+		Matrix matrix = new Matrix(a.dimension(), b.dimension(), type);
+		switch (type) {
+			case PFLOAT  : return matrix.operation((outer, i, j) -> outer.at(i, j, a.floats()[i] * b.floats()[j]));
+			case PDOUBLE : return matrix.operation((outer, i, j) -> outer.at(i, j, a.doubles()[i] * b.doubles()[j]));
+			case DECIMAL : return matrix.operation((outer, i, j) -> outer.at(i, j, a.decimals()[i].multiply(b.decimals()[j])));
+			default:      throw new IllegalArgumentException("Unsupported input type [" + type.name() + "]");
+		}
+		
 	}
 
 	/**
@@ -149,7 +160,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 *     <li>i != j → δij = 0</li>
 	 * </ul>
 	 */
-	public static int kroneckerDelta(int i, int j) {
+	static int kroneckerDelta(int i, int j) {
 		return (i == j) ? 1 : 0;
 	}
 
@@ -168,7 +179,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @return a new Matrix instance, B | B = t(A)
 	 */
 	public Matrix transpose() {
-		return new Matrix(this.getN(), this.getM()).operation(((matrix, i, j) -> matrix.at(i, j, this.at(j, i))));
+		return new Matrix(this.weights.transpose());
 	}
 
 	/**
@@ -180,13 +191,33 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @throws IllegalArgumentException if the coordinates are outside the Matrix bounds
 	 */
 	public Matrix at(int x, int y, float value) {
-		try {
-			this.weights[x][y] = value;
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException(
-				"Illegal position for matrix " + this.shortLabel() + " @ " + position(x, y) 
-			);
-		}
+		this.weights.at(x, y, value);
+		return this;
+	}
+	
+	/**
+	 * Set the Matrix value @(i=x,j=y)
+	 * @param x     the height coordinate
+	 * @param y     the width coordinate
+	 * @param value the value to set
+	 * @return the current Matrix instance
+	 * @throws IllegalArgumentException if the coordinates are outside the Matrix bounds
+	 */
+	public Matrix at(int x, int y, double value) {
+		this.weights.at(x, y, value);
+		return this;
+	}
+	
+	/**
+	 * Set the Matrix value @(i=x,j=y)
+	 * @param x     the height coordinate
+	 * @param y     the width coordinate
+	 * @param value the value to set
+	 * @return the current Matrix instance
+	 * @throws IllegalArgumentException if the coordinates are outside the Matrix bounds
+	 */
+	public Matrix at(int x, int y, BigDecimal value) {
+		this.weights.at(x, y, value);
 		return this;
 	}
 	
@@ -198,60 +229,16 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @throws IllegalArgumentException if the coordinates are outside the Matrix bounds
 	 */
 	public float at(int x, int y) {
-		try {
-			return this.weights[x][y];
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException(
-				"Illegal position for matrix " + this.shortLabel() + " @ " + position(x, y) 
-			);
-		}
-	}
-
-	/**
-	 * Set the Matrix row value @(i=x)
-	 * @param x the height coordinate
-	 * @return the current Matrix instance
-	 * @throws IllegalArgumentException if the coordinates are outside the Matrix bounds
-	 */
-	public Matrix atX(int x, float... values) {
-		try {
-			this.weights[x] = values;
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Illegal position for matrix " + this.shortLabel() +  " @ [" + x + ":Y]");
-		}
-		return this;
+		return this.weights.floatAt(x, y);
 	}
 	
-	/**
-	 * Set the Matrix column value @(j=y)
-	 * @param y the width coordinate
-	 * @return the current Matrix instance
-	 * @throws IllegalArgumentException if the coordinates are outside the Matrix bounds
-	 */
-	public Matrix atY(int y, float... values) {
-		try {
-			int index = 0;
-			for (float[] lines : this.weights) {
-				lines[y] = values[index];
-				index++;
-			}
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Illegal position for matrix " + this.shortLabel() + " @ [X:" + y + "]");
-		}
-		return this;
-	}
-
 	/**
 	 * Get a line of the matrix @(i=x) as a FloatVector 
 	 * @param x the height coordinate
 	 * @return a new FloatVector of dimension {@link #getN()}
 	 */
-	public FloatVector line(int x) {
-		try {
-			return new FloatVector(this.weights[x]);
-		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("Illegal position for matrix " + this.shortLabel() + " @ [" + x + "]");
-		}
+	public Vector line(int x) {
+		return Vector.of(this.weights.line(x));
 	}
 	
 	/**
@@ -259,20 +246,16 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @param y the width coordinate
 	 * @return a new FloatVector of dimension {@link #getM()}
 	 */
-	public FloatVector col(int y) {
-		FloatVector out = FloatVector.of(this.getM());
-		for (int i = 0; i < this.getM(); i++) {
-			out.at(i, this.at(i, y));
-		}
-		return out;
+	public Vector col(int y) {
+		return Vector.of(this.weights.column(y));
 	}
 
 	/**
 	 * Get a representation of this matrix as a list of line vectors.
 	 * @return a {@link #getM()} sized list of Vectors of dimension {@link #getN()}
 	 */
-	public List<FloatVector> lines() {
-		List<FloatVector> lines = new ArrayList<>(this.getM());
+	public List<Vector> lines() {
+		List<Vector> lines = new ArrayList<>(this.getM());
 		for (int i = 0; i < this.getM(); i++) {
 			lines.add(this.line(i));
 		}
@@ -283,12 +266,12 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * Get a representation of this matrix as a list of column vectors.
 	 * @return a {@link #getN()} sized list of Vectors of dimension {@link #getM()}
 	 */
-	public List<FloatVector> cols() {
-		List<FloatVector> lines = new ArrayList<>(this.getN());
+	public List<Vector> cols() {
+		List<Vector> cols = new ArrayList<>(this.getN());
 		for (int j = 0; j < this.getN(); j++) {
-			lines.add(this.col(j));
+			cols.add(this.col(j));
 		}
-		return lines;
+		return cols;
 	}
 
 	/**
@@ -297,12 +280,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @throws IllegalArgumentException if other matrix dimensions does not match the current ones.
 	 */
 	public void sum(Matrix other) {
-		if (this.getM() != other.getM() || this.getN() != other.getN()) {
-			throw new IllegalArgumentException(
-				"Could not sum matrix " + this.shortLabel() + " with " + other.shortLabel()
-			);
-		}
-		this.operation(((matrix, i, j) -> matrix.at(i, j, this.at(i, j) + other.at(i, j))));
+		this.weights.sum(other.weights);
 	}
 
 	/**
@@ -312,7 +290,8 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	 * @return the current Matrix instance
 	 */
 	public Matrix mult(float with) {
-		return this.operation(((matrix, i, j) -> matrix.at(i, j, this.at(i, j) * with)));
+		this.weights.mul(with);
+		return this;
 	}
 
 	/**
@@ -340,16 +319,6 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 	}
 
 	/**
-	 * A String representation of a position
-	 * @param x the height coordinate
-	 * @param y the width coordinate
-	 * @return a String representation of the position
-	 */
-	private static String position(int x, int y) {
-		return "[" + x + ", " + y + "]";
-	}
-
-	/**
 	 * Get a multiline full label for this matrix.
 	 * Example : 
 	 * <pre>
@@ -366,7 +335,7 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 		List<String> label = new ArrayList<>();
 		int colLength = this.format.getLength() + 1;
 		label.add("┌" + this.format.spaces(this.getN() * colLength - 1) + "┐");
-		this.lines().forEach(line -> label.add("│" + this.format(line.getValue()) + "│"));
+		this.lines().forEach(line -> label.add("│" + this.format(line.getValue().floats()) + "│"));
 		label.add("└" + this.format.spaces(this.getN() * colLength - 1) + "┘");
 		return label;
 	}
@@ -392,25 +361,6 @@ public class Matrix extends DomainCheckedFunction<Matrix> implements VFunction {
 		return this.format.format(value);
 	}
 	
-	/**
-	 * Simple linear combination between an input vector and a column. <br>
-	 * Sizes must match !
-	 * @param input the input vector
-	 * @return the linear combination between an input and a column.
-	 */
-	private static float linearCombination(float[] input, float[] column){
-		if(input.length != column.length){
-			throw new IllegalArgumentException(
-				"Input size [" + input.length + "] does not match column size [" + column.length + "]"
-			);
-		}
-		float out = 0;
-		for (int i = 0; i < input.length; i++) {
-			out += input[i] * column[i];
-		}
-		return out;
-	}
-
 	/**
 	 * An interface for an operation to execute on a matrix at a position.
 	 */

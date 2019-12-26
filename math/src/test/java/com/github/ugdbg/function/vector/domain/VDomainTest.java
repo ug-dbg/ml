@@ -3,7 +3,7 @@ package com.github.ugdbg.function.vector.domain;
 import com.github.ugdbg.function.domain.Domain;
 import com.github.ugdbg.function.scalar.domain.Domains;
 import com.github.ugdbg.function.scalar.domain.Segment;
-import com.github.ugdbg.vector.primitive.FloatVector;
+import com.github.ugdbg.vector.Vector;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,23 +17,23 @@ public class VDomainTest {
 	@Test(expected = RuntimeException.class)
 	public void test_BadRange_INF() {
 		VDomain r5 = VDomains.R(5);
-		r5.isIn(FloatVector.of(-2f, 3f, 154f, 0f));
+		r5.isIn(Vector.of(-2f, 3f, 154f, 0f));
 	}
 	
 	@Test(expected = RuntimeException.class)
 	public void test_BadRange_SUP() {
 		VDomain r5 = VDomains.R(5);
-		r5.isIn(FloatVector.of(-2f, 3f, 154f, 0f, 14f, 34f));
+		r5.isIn(Vector.of(-2f, 3f, 154f, 0f, 14f, 34f));
 	}
 	
 	@Test
 	public void test_R_N() {
 		VDomain r5 = VDomains.R(5);
 
-		Assert.assertTrue(r5.isIn(FloatVector.of(-2f, 3f, 154f, 0f, 1f)));
-		Assert.assertFalse(r5.isIn(FloatVector.of(-2f, 3f, Float.NaN, 0f, 1f)));
-		Assert.assertFalse(r5.isIn(FloatVector.of(-2f, 3f, Float.POSITIVE_INFINITY, 0f, 1f)));
-		Assert.assertFalse(r5.isIn(FloatVector.of(-2f, 3f, Float.NEGATIVE_INFINITY, 0f, 1f)));
+		Assert.assertTrue(r5.isIn(Vector.of(-2f, 3f, 154f, 0f, 1f)));
+		Assert.assertFalse(r5.isIn(Vector.of(-2f, 3f, Float.NaN, 0f, 1f)));
+		Assert.assertFalse(r5.isIn(Vector.of(-2f, 3f, Float.POSITIVE_INFINITY, 0f, 1f)));
+		Assert.assertFalse(r5.isIn(Vector.of(-2f, 3f, Float.NEGATIVE_INFINITY, 0f, 1f)));
 		
 		Assert.assertFalse(r5.isEmpty());
 		Assert.assertEquals("(ℝ)⁵", r5.toString());
@@ -43,10 +43,10 @@ public class VDomainTest {
 	public void test_R_N_closed() {
 		VDomain r5_closed = VDomains.R_closed(5);
 
-		Assert.assertTrue(r5_closed.isIn(FloatVector.of(-2f, 3f, 154f, 0f, 1f)));
-		Assert.assertTrue(r5_closed.isIn(FloatVector.of(-2f, 3f, Float.POSITIVE_INFINITY, 0f, 1f)));
-		Assert.assertTrue(r5_closed.isIn(FloatVector.of(-2f, 3f, Float.NEGATIVE_INFINITY, 0f, 1f)));
-		Assert.assertFalse(r5_closed.isIn(FloatVector.of(-2f, 3f, Float.NaN, 0f, 1f)));
+		Assert.assertTrue(r5_closed.isIn(Vector.of(-2f, 3f, 154f, 0f, 1f)));
+		Assert.assertTrue(r5_closed.isIn(Vector.of(-2f, 3f, Float.POSITIVE_INFINITY, 0f, 1f)));
+		Assert.assertTrue(r5_closed.isIn(Vector.of(-2f, 3f, Float.NEGATIVE_INFINITY, 0f, 1f)));
+		Assert.assertFalse(r5_closed.isIn(Vector.of(-2f, 3f, Float.NaN, 0f, 1f)));
 		
 		Assert.assertFalse(r5_closed.isEmpty());
 		Assert.assertEquals("([-∞, +∞])⁵", r5_closed.toString());
@@ -57,10 +57,10 @@ public class VDomainTest {
 		VDomain r5 = VDomains.R_plus(5);
 		VDomain union = r5.union(new Segment[] {new Segment(-2f, -1f)});
 
-		Assert.assertTrue(union.isIn(FloatVector.of(0f, 0f, 0f, 0f, 0f)));
-		Assert.assertTrue(union.isIn(FloatVector.of(-1.5f, -1.5f, -1.5f, -1.5f, -1.5f)));
-		Assert.assertFalse(union.isIn(FloatVector.of(-1.5f, -1.5f, -2f, -1.5f, -1.5f)));
-		Assert.assertFalse(union.isIn(FloatVector.of(-2, -2f, -2f, -2f, -2f)));
+		Assert.assertTrue(union.isIn(Vector.of(0f, 0f, 0f, 0f, 0f)));
+		Assert.assertTrue(union.isIn(Vector.of(-1.5f, -1.5f, -1.5f, -1.5f, -1.5f)));
+		Assert.assertFalse(union.isIn(Vector.of(-1.5f, -1.5f, -2f, -1.5f, -1.5f)));
+		Assert.assertFalse(union.isIn(Vector.of(-2, -2f, -2f, -2f, -2f)));
 		
 		Assert.assertFalse(union.isEmpty());
 		Assert.assertEquals("(]-2.0, -1.0[ ⋃ ℝ+)⁵", union.toString());
@@ -71,13 +71,13 @@ public class VDomainTest {
 		VDomain r5 = VDomains.R_plus(5);
 		VDomain inter = r5.inter(new Segment(-2f, 5f).open(true, false));
 
-		Assert.assertTrue(inter.isIn(FloatVector.of(0f, 0f, 0f, 0f, 0f)));
-		Assert.assertTrue(inter.isIn(FloatVector.of(0f, 0f, 0f, 5f, 0f)));
-		Assert.assertTrue(inter.isIn(FloatVector.of(2f, 3f, 4f, 5f, 4f)));
-		Assert.assertFalse(inter.isIn(FloatVector.of(2f, 3f, 4f, 5f, 5.00001f)));
-		Assert.assertFalse(inter.isIn(FloatVector.of(0f, 0f, 0f, Float.MAX_VALUE * -1, 0f)));
-		Assert.assertFalse(inter.isIn(FloatVector.of(-1.5f, -1.5f, -1.5f, -1.5f, -1.5f)));
-		Assert.assertFalse(inter.isIn(FloatVector.of(-1.5f, 1.5f, 1.5f, 1.5f, 1.5f)));
+		Assert.assertTrue(inter.isIn(Vector.of(0f, 0f, 0f, 0f, 0f)));
+		Assert.assertTrue(inter.isIn(Vector.of(0f, 0f, 0f, 5f, 0f)));
+		Assert.assertTrue(inter.isIn(Vector.of(2f, 3f, 4f, 5f, 4f)));
+		Assert.assertFalse(inter.isIn(Vector.of(2f, 3f, 4f, 5f, 5.00001f)));
+		Assert.assertFalse(inter.isIn(Vector.of(0f, 0f, 0f, Float.MAX_VALUE * -1, 0f)));
+		Assert.assertFalse(inter.isIn(Vector.of(-1.5f, -1.5f, -1.5f, -1.5f, -1.5f)));
+		Assert.assertFalse(inter.isIn(Vector.of(-1.5f, 1.5f, 1.5f, 1.5f, 1.5f)));
 		
 		Assert.assertFalse(inter.isEmpty());
 		Assert.assertEquals("([0.0, 5.0])⁵", inter.toString());
@@ -126,19 +126,19 @@ public class VDomainTest {
 	
 	@Test
 	public void test_R_anyDimension() {
-		Assert.assertTrue(VDomains.R_ANY.isIn(FloatVector.of(0f)));
-		Assert.assertTrue(VDomains.R_ANY.isIn(FloatVector.of(-5f, 4f)));
-		Assert.assertTrue(VDomains.R_ANY.isIn(FloatVector.of(Float.MAX_VALUE, 0f, Float.MIN_VALUE)));
+		Assert.assertTrue(VDomains.R_ANY.isIn(Vector.of(0f)));
+		Assert.assertTrue(VDomains.R_ANY.isIn(Vector.of(-5f, 4f)));
+		Assert.assertTrue(VDomains.R_ANY.isIn(Vector.of(Float.MAX_VALUE, 0f, Float.MIN_VALUE)));
 		Assert.assertEquals("(ℝ)ⁿ", VDomains.R_ANY.toString());
 
 		VDomain segmentN = VDomain.anyDimension(new Segment(0f, 1f).open(false, false));
 		Assert.assertEquals("([0.0, 1.0])ⁿ", segmentN.toString());
 		
-		Assert.assertTrue(segmentN.isIn(FloatVector.of(0f)));
-		Assert.assertTrue(segmentN.isIn(FloatVector.of(0f, 0f)));
-		Assert.assertTrue(segmentN.isIn(FloatVector.of(0f, 1f)));
-		Assert.assertTrue(segmentN.isIn(FloatVector.of(0f, 0.5f, 0.005f, 0f)));
-		Assert.assertFalse(segmentN.isIn(FloatVector.of(0f, 0.5f, 1.001f, 0f)));
-		Assert.assertFalse(segmentN.isIn(FloatVector.of(0f, 0.5f, 0.7f, -0.02f, 0.3f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f, 0f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f, 1f)));
+		Assert.assertTrue(segmentN.isIn(Vector.of(0f, 0.5f, 0.005f, 0f)));
+		Assert.assertFalse(segmentN.isIn(Vector.of(0f, 0.5f, 1.001f, 0f)));
+		Assert.assertFalse(segmentN.isIn(Vector.of(0f, 0.5f, 0.7f, -0.02f, 0.3f)));
 	}
 }

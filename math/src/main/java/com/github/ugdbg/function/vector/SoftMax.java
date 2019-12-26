@@ -1,8 +1,12 @@
 package com.github.ugdbg.function.vector;
 
-import org.apache.commons.lang3.ArrayUtils;
+import com.github.ugdbg.datatypes.TYPE;
+import com.github.ugdbg.vector.Vector;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 /**
  * sm:x(x₁,x₂,x₃...xₙ) → y(y₁,y₂,y₃...yₙ)
@@ -11,12 +15,31 @@ import java.util.Arrays;
  */
 public class SoftMax extends DomainCheckedFunction<SoftMax> implements VDerivable {
 	@Override
-	public float[] doApply(float[] input) {
-		Float[] inputObjects = ArrayUtils.toObject(input);
-		float sum = this.expSum(inputObjects);
-		return ArrayUtils.toPrimitive(
-			Arrays.stream(inputObjects).map(f -> (float) Math.exp(f) / sum).toArray(Float[]::new)
-		);
+	public Vector doApply(Vector input) {
+		TYPE type = input.getValue().getType();
+		Vector out = Vector.of(type, input.dimension());
+		IntStream stream = input.getValue().indexStream();
+		
+		switch (type) {
+			case PFLOAT:
+				float[] floats = input.floats();
+				stream.forEach(index -> out.floats()[index] = (float) (Math.exp(floats[index]) / this.expSum(floats)));
+				break;
+			case PDOUBLE:
+				double[] doubles = input.doubles();
+				stream.forEach(index -> out.doubles()[index] = Math.exp(doubles[index]) / this.expSum(doubles));
+				break;
+			case DECIMAL:
+				BigDecimal[] decimals = input.decimals();
+				stream.forEach(index -> out.decimals()[index] = 
+					BigDecimal
+					.valueOf(Math.exp(decimals[index].doubleValue()))
+					.divide(this.expSum(decimals), RoundingMode.HALF_DOWN)
+				);
+				break;
+		}
+		
+		return out;
 	}
 
 	@Override
@@ -29,15 +52,53 @@ public class SoftMax extends DomainCheckedFunction<SoftMax> implements VDerivabl
 		return "e(xₖ) / ∑₁→ₙ (e(x₁),e(x₂),e(x₃)...e(xₙ))";
 	}
 
-	private Matrix jacobian(float[] input) {
-		int dimension = input.length;
-		float[] softmaxOut = SoftMax.this.apply(input);
-		return new Matrix(dimension, dimension).operation(
-			(matrix, i, j) -> matrix.at(i, j, softmaxOut[j] * (Matrix.kroneckerDelta(i, j) - softmaxOut[i]))
-		);
+	private Matrix jacobian(Vector input) {
+		int dimension = input.dimension();
+		Vector softmaxOut = SoftMax.this.apply(input);
+
+		TYPE type = input.getValue().getType();
+		Matrix jacobian = new Matrix(dimension, dimension, type);
+		switch (type) {
+			case PFLOAT:
+				return jacobian.operation(
+					(matrix, i, j) -> matrix.at(i, j, jacobianOperation(i, j, softmaxOut.floats()))
+				);
+			case PDOUBLE:
+				return jacobian.operation(
+					(matrix, i, j) -> matrix.at(i, j, jacobianOperation(i, j, softmaxOut.doubles()))
+				);
+			case DECIMAL:
+				return jacobian.operation(
+					(matrix, i, j) -> matrix.at(i, j, jacobianOperation(i, j, softmaxOut.decimals()))
+				);
+			default: throw new IllegalArgumentException("Unsupported input vector type [" + type + "]");
+		}
 	}
 	
-	private float expSum(Float[] input) {
-		return (float) Arrays.stream(input).map(Math::exp).mapToDouble(d -> d).sum();
+	private static float jacobianOperation(int i, int j, float[] softmaxOut) {
+		return softmaxOut[j] * (Matrix.kroneckerDelta(i, j) - softmaxOut[i]);
+	}
+	
+	private static double jacobianOperation(int i, int j, double[] softmaxOut) {
+		return softmaxOut[j] * (Matrix.kroneckerDelta(i, j) - softmaxOut[i]);
+	}
+	
+	private static BigDecimal jacobianOperation(int i, int j, BigDecimal[] softmaxOut) {
+		return softmaxOut[j].multiply(BigDecimal.valueOf(Matrix.kroneckerDelta(i, j)).subtract(softmaxOut[i]));
+	}
+	
+	private float expSum(float[] input) {
+		return (float) IntStream.range(0, input.length).mapToDouble(i -> Math.exp(input[i])).sum();
+	}
+	
+	private double expSum(double[] input) {
+		return (float) Arrays.stream(input).map(Math::exp).sum();
+	}
+	
+	private BigDecimal expSum(BigDecimal[] input) {
+		return IntStream
+			.of(0, input.length)
+			.mapToObj(i -> BigDecimal.valueOf(Math.exp(input[i].doubleValue())))
+			.reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 }
