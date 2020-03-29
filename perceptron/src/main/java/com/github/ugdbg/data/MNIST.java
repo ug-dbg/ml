@@ -27,8 +27,8 @@ import java.util.zip.GZIPInputStream;
  */
 public class MNIST {
 	
-	private String imagesURL = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz";
-	private String labelsURL = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz";
+	private String imagesURL = "http://hdmcl.no-ip.org/mnist/train-images-idx3-ubyte.gz";
+	private String labelsURL = "http://hdmcl.no-ip.org/mnist/train-labels-idx1-ubyte.gz";
 	private File imagesTarget;
 	private File labelsTarget;
 	private List<Image> images = new ArrayList<>();
